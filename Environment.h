@@ -3,10 +3,11 @@
 
 #include <vector>
 #include <Eigen/Dense>
-#include "Creature.h"
 #include <unordered_set>
 
 using Eigen::Vector2d;
+
+class Creature;
 
 class Environment
 {
@@ -29,14 +30,14 @@ public:
 private:
 	//models where food resources are
 	std::vector<FoodSource> m_food{};
-	//std::vector<Creature*> m_population{}; 
+	std::unordered_set<Creature*> m_population{}; 
 
 public:
 	Environment(std::vector<Vector2d> food_positions);
 
 	FoodSource* nearest_food(Vector2d position);
-	//Creature* nearest_mate(Creature* creature) const;
-	//void add_creature(Creature creature);
+	Creature* nearest_mate(Creature* creature) const;
+	void add_creature(Creature* creature);
 	void step_forward();
 };
 

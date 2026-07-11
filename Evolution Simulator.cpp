@@ -2,39 +2,59 @@
 //
 
 #include <iostream>
-#include "Creature.h"
-#include "Map.h"
 #include <Eigen/Dense>
 #include <unordered_set>
 #include <random>
 #include <vector>
+#include <array>
+
+#include "Creature.h"
+#include "Environment.h"
+#include "FoodSource.h"
+#include "ResourceFinder.h"
+
+//sets up where we plan to place food with local variables to conserve memory
+std::array<FoodSource, 4> initialize_food() {
+    std::array<Vector2d,4> foodLocations{
+    Vector2d(-50.0, 75.0),
+    Vector2d(300.0, 40.0),
+    Vector2d(-400.0, -200.0),
+    Vector2d(250.0, -100.0)
+    };
+
+    std::vector<FoodSource> food{};
+    for ( const auto& position : foodLocations) {
+        food.push_back(FoodSource(position));
+    }
+    
+    std::array<FoodSource, 4> answer{};
+    for (int i{}; i < 4; ++i) {
+        answer[i] = FoodSource(foodLocations[i]);
+    }
+    return answer;
+}
 
 int main()
 {
     std::mt19937_64 generator;
     std::uniform_real_distribution distribution(-500.0, 500.0);
 
-    std::vector<Vector2d> foodLocations{
-        Vector2d(-50.0, 75.0),
-        Vector2d(300.0, 40.0),
-        Vector2d(-400.0, -200.0),
-        Vector2d(250.0, -100.0)
-    };
+    ResourceFinder<FoodSource,4> foodManager{ initialize_food() };
 
-    Environment map{ foodLocations };
+    Creature gooblet{Vector2d{}, 10.0 };
+    Creature mate{ Vector2d(20.0,30.0), 10.0 };
 
-    Creature gooblet{ Vector2d{}, 10.0 };
-    Environment::FoodSource* food{ map.nearest_food(gooblet.get_position()) };
+    FoodSource* food{ foodManager.find_closest_to(gooblet.get_position()) };
 
     std::cout << food->get_position() << std::endl;
 
     if (food) {
         gooblet.move_toward(food->get_position());
     }
-    gooblet.update_state();
+    gooblet.update();
     gooblet.print();
     gooblet.move_toward(food->get_position());
-    gooblet.update_state();
+    gooblet.update();
     gooblet.print();
 
 }

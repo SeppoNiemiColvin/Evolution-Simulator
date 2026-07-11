@@ -1,4 +1,5 @@
 #include "Creature.h"
+#include "Environment.h"
 #include <iostream>
 #include <cmath>
 
@@ -19,14 +20,20 @@ void Creature::move_toward(const Vector2d& target) {
 	m_position += m_SPEED * DELTA / DISTANCE;
 }
 
-void Creature::update_state() {
+void Creature::update() {
 	m_hunger -= 1.0;
 	if (m_hunger <= 0.0) {
 		m_state = dead;
 	}
-	else if (m_hunger <= 20.0) {
+	else if (m_hunger <= m_HUNGER_THRESHOLD) {
 		m_state = hungry;
 	}
+	else {
+		m_state = horny;
+	}
+}
+void Creature::eat() {
+	m_hunger = m_MAX_HUNGER;
 }
 
 Creature Creature::reproduce(Creature mate) const{

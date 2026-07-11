@@ -1,4 +1,5 @@
-#include "Map.h"
+#include "Environment.h"
+#include "Creature.h"
 
 Environment::FoodSource::FoodSource(Vector2d position) : m_position{ position }
 {
@@ -43,14 +44,14 @@ Environment::FoodSource* Environment::nearest_food(Vector2d position){
 	}
 	return closest;
 }
-/*
 
-Creature* Environment::nearest_mate(Creature* creature) const{
+
+Creature* Environment::nearest_mate(Creature* creature) const {
 	const Vector2d position = creature->get_position();
 	Creature* closest_mate{};
 	double current_distance{};
 	for (Creature* potential_mate : m_population) {
-		if (!(potential_mate->is_horny())) {
+		if (!(potential_mate->is_available()) || potential_mate == creature) {
 			continue;
 		}
 
@@ -60,9 +61,9 @@ Creature* Environment::nearest_mate(Creature* creature) const{
 			closest_mate = potential_mate;
 		}
 	}
-	return closest_mate;
+	return closest_mate; 
 }
 
-void Environment::add_creature(Creature creature) {
-	m_population.push_back(&creature);
-}*/
+void Environment::add_creature(Creature* creature) {
+	m_population.insert(creature);
+}

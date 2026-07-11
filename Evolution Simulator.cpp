@@ -2,10 +2,41 @@
 //
 
 #include <iostream>
+#include "Creature.h"
+#include "Map.h"
+#include <Eigen/Dense>
+#include <unordered_set>
+#include <random>
+#include <vector>
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    std::mt19937_64 generator;
+    std::uniform_real_distribution distribution(-500.0, 500.0);
+
+    std::vector<Vector2d> foodLocations{
+        Vector2d(-50.0, 75.0),
+        Vector2d(300.0, 40.0),
+        Vector2d(-400.0, -200.0),
+        Vector2d(250.0, -100.0)
+    };
+
+    Environment map{ foodLocations };
+
+    Creature gooblet{ Vector2d{}, 10.0 };
+    Environment::FoodSource* food{ map.nearest_food(gooblet.get_position()) };
+
+    std::cout << food->get_position() << std::endl;
+
+    if (food) {
+        gooblet.move_toward(food->get_position());
+    }
+    gooblet.update_state();
+    gooblet.print();
+    gooblet.move_toward(food->get_position());
+    gooblet.update_state();
+    gooblet.print();
+
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

@@ -1,3 +1,11 @@
-.vs/
-*.vcx*
+*.ipch
+*.vcxproj.*
+*.tlog
 *.slnx
+*.pdb
+*.vcxproj
+*.obj
+*.ilk
+*.idb
+*.recipe
+*.log

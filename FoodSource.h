@@ -9,7 +9,7 @@ using Eigen::Vector2d;
 class FoodSource : public SurvivalResource
 {
 private:
-	Vector2d m_position{};
+	const Vector2d m_position{};
 	int m_fruits{ 4 };
 
 public:

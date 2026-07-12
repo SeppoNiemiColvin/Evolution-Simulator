@@ -9,7 +9,8 @@ using Eigen::Vector2d;
 
 class Environment;
 
-class Creature : SurvivalResource
+//as a survival resource a Creature is a potential mate for other Creatures
+class Creature : public SurvivalResource
 {
 public:
 	//if I end up having things like predators and the like
@@ -40,17 +41,20 @@ private:
 	const double m_SPEED{};
 
 	Vector2d m_position{};
+
 	double m_hunger{ 15.0 };
+
+	//these track the gooblets current deires.
+	//the goal is a pointer toward the survival resource the gooblet is currently after
+	//helps prevent us from having to rellook this up constantly.
+	SurvivalResource* m_goal{};
 	State m_state{ hungry };
 
-
 	void move_neutral();
-	void move_toward_food();
+	void move_toward(const Vector2d& target);
 
 public:
 	Creature( Vector2d position, double speed);
-
-	void move_toward(const Vector2d& target);
 
 	Creature reproduce(const Creature mate) const;
 	void update();
@@ -66,6 +70,15 @@ public:
 	State get_state() const { return m_state; }
 	Species get_Species() const { return m_SPECIES; }
 
+	void set_goal(SurvivalResource* new_goal) { m_goal = new_goal; }
+	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
+	bool goal_in_reach() const {
+		return m_goal && (m_goal->get_position() - m_position).norm() < m_REACH;
+	}
+	SurvivalResource* get_goal() { return m_goal; }
+	//as a Survival resource use means mate
+	//This requires a lot of energy so hunger get set to the threshold
+	//this will also force the gooblets to not immediately mate again
 	virtual void use() { m_hunger = m_HUNGER_THRESHOLD; }
 };
 

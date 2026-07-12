@@ -6,10 +6,11 @@
 #include<unordered_set>
 #include <array>
 
+using Eigen::Vector2d;
+
 //This Manages SurvivalResources of fixed length.
 //T should be a SurvivalResource
 //U should point to a container of SurvivalResources of the same type
-using Eigen::Vector2d;
 
 template <typename T, auto n>
 class ResourceFinder
@@ -21,15 +22,16 @@ private:
 public:
 	ResourceFinder(std::array<T,n> all_resources) : m_all_resources{ all_resources }
 	{
-		update_availability();
+		update();
 	};
 
+	//Finds the available resource positioned closest to position
 	T* find_closest_to(Vector2d position) {
 		T* closest{};
 		double current_distance{};
 
 		for (auto resource : m_available_resources) {
-			const double distance{ (resource->get_position() - position).norm() };
+			const double distance{ resource->get_distance(position)};
 			if (!closest || distance < current_distance) {
 				current_distance = distance;
 				closest = resource;
@@ -38,11 +40,15 @@ public:
 		return closest;
 	}
 
-	void update_availability() {
-		m_available_resources = std::unordered_set<T*>();
+	//updates the availability lists
+	void update() {
 		for (T& resource : m_all_resources) {
+			resource.update();
 			if (resource.is_available()) {
 				m_available_resources.insert( &resource );
+			}
+			else {
+				m_available_resources.erase(&resource);
 			}
 		}
 	}

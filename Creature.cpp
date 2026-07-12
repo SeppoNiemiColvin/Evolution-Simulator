@@ -20,6 +20,11 @@ void Creature::move_toward(const Vector2d& target) {
 	m_position += m_SPEED * DELTA / DISTANCE;
 }
 
+void Creature::move() {
+	if (m_goal) { move_toward(m_goal->get_position()); }
+	else { move_neutral(); }
+}
+
 void Creature::update() {
 	m_hunger -= 1.0;
 	if (m_hunger <= 0.0) {
@@ -32,6 +37,7 @@ void Creature::update() {
 		m_state = horny;
 	}
 }
+
 void Creature::eat() {
 	m_hunger = m_MAX_HUNGER;
 }
@@ -56,6 +62,7 @@ void Creature::print() const {
 	std::cout << "State " << m_state << std::endl;
 	std::cout << "Speed: " << m_SPEED << std::endl;
 	std::cout << "Position: " << string_position(m_position) << std::endl;
+	std::cout << "Goal: " << (m_goal ? string_position(m_goal->get_position()) : "Null") << std::endl;
 	std::cout << "Hunger: " << m_hunger << '/' << m_MAX_HUNGER << std::endl;
 }
 

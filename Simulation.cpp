@@ -157,3 +157,19 @@ void Simulation::print_population() const {
 void Simulation::print_food() const {
 	m_foodManager.print();
 }
+
+int Simulation::population_size() const {
+	return m_malePopulation.size() + m_femalePopulation.size();
+}
+
+double Simulation::average_speed() const {
+	double total{};
+	for (const Creature* female : m_femalePopulation) {
+		total += female->get_speed();
+	}
+
+	for (const Creature* male : m_malePopulation) {
+		total += male->get_speed();
+	}
+	return total / population_size();
+}

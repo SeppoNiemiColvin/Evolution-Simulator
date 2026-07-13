@@ -85,10 +85,10 @@ public:
 	}
 
 	//number of total resources
-	int size() { return m_all_resources.size(); }
+	int size() const { return m_all_resources.size(); }
 
 	//number of resources that are actually available
-	int available_size() { return m_available_resources.size(); }
+	int available_size() const { return m_available_resources.size(); }
 };
 
 #endif

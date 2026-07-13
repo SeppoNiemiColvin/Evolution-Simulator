@@ -53,6 +53,9 @@ public:
 	//prints information about the current foodsources
 	void print_food() const;
 
+	int population_size() const;
+	double average_speed() const;
+
 	//helper member function so that the males are all immediately sexually available
 	//helpful during initial testing when I want only one gender walking around
 	void males_eat();

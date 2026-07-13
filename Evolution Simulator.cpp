@@ -31,11 +31,13 @@ int main()
 
     simulation.males_eat();
 
-    for (int time{}; time < 300; ++time) {
+    for (int time{}; time < 1000; ++time) {
         simulation.update();
     }
     simulation.print_population();
     simulation.print_food();
+    std::cout << simulation.population_size() << std::endl;
+    std::cout << simulation.average_speed() << std::endl;
     return 0;
 }
 

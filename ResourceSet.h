@@ -31,9 +31,25 @@ public:
 		return closest;
 	}
 
+	//removes a resource from the ResourceSet
+	void erase(T* dead_resource) {
+		m_all_resources.erase(dead_resource);
+		if (dead_resource->is_available()) {
+			m_available_resources.erase(dead_resource);
+		}
+		delete dead_resource;
+	}
+
+	//updates the resources clearing out those that are dead
+	//and shifting availability for the remaining
 	void update() {
 		for (auto& resource : m_all_resources) {
 			resource->update();
+			if (resource->is_dead()) {
+				erase(resource);
+				break;
+			}
+
 			if (resource->is_available()) {
 				m_available_resources.insert(resource);
 			}
@@ -51,26 +67,28 @@ public:
 		}
 	}
 
-	void erase(T* dead_resource) {
-		m_all_resources.erase(dead_resource);
-		if (dead_resource->is_available()) {
-			m_available_resources.erase(dead_resource);
-		}
-		delete dead_resource;
-	}
-	std::unordered_set<T*>::iterator begin() {
+	//iterator sat the start of the resources
+	std::unordered_set<T*>::iterator begin() const {
 		return m_all_resources.begin();
 	}
 
-	std::unordered_set<T*>::iterator end() {
+	//iterator for the end of the resources
+	std::unordered_set<T*>::iterator end() const {
 		return m_all_resources.end();
 	}
 
+	//destructor that cleans up the resources
 	~ResourceSet() {
 		for (T* resource : m_all_resources) {
 			delete resource;
 		}
 	}
+
+	//number of total resources
+	int size() { return m_all_resources.size(); }
+
+	//number of resources that are actually available
+	int available_size() { return m_available_resources.size(); }
 };
 
 #endif

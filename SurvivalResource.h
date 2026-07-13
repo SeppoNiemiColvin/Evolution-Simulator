@@ -24,6 +24,10 @@ public:
 
 	//updates the resource with the passage of time.
 	virtual void update() = 0;
+
+	virtual void print() const = 0;
+
+	virtual bool is_dead() { return false; }
 };
 
 #endif

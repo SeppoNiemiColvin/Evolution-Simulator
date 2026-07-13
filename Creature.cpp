@@ -3,9 +3,10 @@
 #include <iostream>
 #include <cmath>
 
-Creature::Creature(Vector2d position, double speed) :
+Creature::Creature(Vector2d position, double speed, double eyesight) :
 	m_position{ position },
-	m_SPEED{ speed }
+	m_SPEED{ speed },
+	m_EYESIGHT{ eyesight }
 {
 }
 
@@ -26,15 +27,27 @@ void Creature::move() {
 }
 
 void Creature::update() {
+	//if we are dead we stay dead
+	if (m_state == dead) {
+		return;
+	}
+	//time passes and the creature's metabolism runs
 	m_hunger -= 1.0;
+
+	//check if state needs to switch and if so adjust the goal
 	if (m_hunger <= 0.0) {
 		m_state = dead;
+		return;
 	}
-	else if (m_hunger <= m_HUNGER_THRESHOLD) {
+	if (m_hunger <= m_HUNGER_THRESHOLD && m_state != hungry) {
 		m_state = hungry;
+		m_goal = nullptr;
+		return;
 	}
-	else {
+
+	if (m_hunger > m_HUNGER_THRESHOLD && m_state != horny){
 		m_state = horny;
+		m_goal = nullptr;
 	}
 }
 
@@ -42,13 +55,16 @@ void Creature::eat() {
 	m_hunger = m_MAX_HUNGER;
 }
 
-Creature Creature::reproduce(Creature mate) const{
+Creature* Creature::reproduce(Creature* other) const{
+	Creature& mate{ *other };
+
 	static std::mt19937_64 generator;
-	static std::normal_distribution distribution(0.0, 1.0);
+	static std::normal_distribution distribution(0.0, 0.5);
 
 	double baby_speed = (m_SPEED + mate.m_SPEED) / 2 + distribution(generator);
+	double eyesight = (m_EYESIGHT + mate.m_EYESIGHT) / 2 + distribution(generator);
 
-	return Creature{ m_position, baby_speed };
+	return new Creature{ m_position, baby_speed, eyesight };
 }
 
 std::string string_position(const Vector2d& position) {
@@ -99,12 +115,14 @@ void Creature::move_neutral() {
 	m_position(1) += m_SPEED * sin(angle);
 }
 
-/*void Creature::move_toward_food() {
-	Environment::FoodSource* food{ m_map.nearest_food(m_position)};
-	if (food) {
-		move_toward(food->get_position());
+bool Creature::goal_in_reach() {
+	if (!m_goal) { return false; }
+
+	if (!(m_goal->is_available())) {
+		//if the goal is no longer available drop it as a goal
+		m_goal = nullptr;
+		return false;
 	}
-	else {
-		move_neutral();
-	}
-}*/
+
+	return (m_goal->get_distance(m_position)) < m_REACH;
+}

@@ -12,18 +12,22 @@ using Eigen::Vector2d;
 //T should be a SurvivalResource
 //U should point to a container of SurvivalResources of the same type
 
-template <typename T, auto n>
+template <typename T>
 class ResourceFinder
 {
 private:
-	std::array<T, n> m_all_resources{};
+	std::vector<T> m_all_resources{};
 	std::unordered_set<T*> m_available_resources{};
 
 public:
-	ResourceFinder(std::array<T,n> all_resources) : m_all_resources{ all_resources }
+	ResourceFinder(std::vector<T> all_resources) : m_all_resources{ all_resources }
 	{
 		update();
-	};
+	}
+
+	ResourceFinder() {
+		;
+	}
 
 	//Finds the available resource positioned closest to position
 	T* find_closest_to(Vector2d position) {
@@ -51,6 +55,20 @@ public:
 				m_available_resources.erase(&resource);
 			}
 		}
+	}
+
+
+	void print() const {
+		for (auto& resource : m_all_resources) {
+			resource.print();
+		}
+	}
+
+	void extend(std::vector<T> extension) {
+		for (T resource : extension) {
+			m_all_resources.push_back(resource);
+		}
+		update();
 	}
 };
 

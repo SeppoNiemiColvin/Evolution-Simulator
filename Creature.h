@@ -33,16 +33,17 @@ public:
 
 private:
 	//some static inline varaibles. These may eventually becomve evolvable
-	static inline double m_MAX_HUNGER{ 50.0 };
+	static inline double m_MAX_HUNGER{ 70.0 };
 	static inline double m_REACH{ 5.0 };
-	static inline double m_HUNGER_THRESHOLD{ 30.0 };
+	static inline double m_HUNGER_THRESHOLD{ 40.0 };
 
 	const Species m_SPECIES{};
 	const double m_SPEED{};
+	const double m_EYESIGHT{};
 
 	Vector2d m_position{};
 
-	double m_hunger{ 15.0 };
+	double m_hunger{ m_HUNGER_THRESHOLD };
 
 	//these track the gooblets current deires.
 	//the goal is a pointer toward the survival resource the gooblet is currently after
@@ -54,9 +55,9 @@ private:
 	void move_toward(const Vector2d& target);
 
 public:
-	Creature( Vector2d position, double speed);
+	Creature( Vector2d position, double speed, double eyesight);
 
-	Creature reproduce(const Creature mate) const;
+	Creature* reproduce(Creature* other) const;
 	void update();
 	void print() const;
 	void move();
@@ -72,9 +73,8 @@ public:
 
 	void set_goal(SurvivalResource* new_goal) { m_goal = new_goal; }
 	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
-	bool goal_in_reach() const {
-		return m_goal && (m_goal->get_position() - m_position).norm() < m_REACH;
-	}
+	bool goal_in_reach();
+
 	SurvivalResource* get_goal() { return m_goal; }
 	//as a Survival resource use means mate
 	//This requires a lot of energy so hunger get set to the threshold

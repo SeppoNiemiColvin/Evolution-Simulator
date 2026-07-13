@@ -20,6 +20,7 @@ public:
 	Vector2d get_position() const { return m_position; }
 	void use() { --m_fruits; }
 	void update();
+	void print() const;
 };
 
 #endif

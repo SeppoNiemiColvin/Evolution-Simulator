@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include <random>
+#include <iostream>
 #include "SurvivalResource.h"
 
 using Eigen::Vector2d;
@@ -24,7 +25,6 @@ public:
 
 	enum State
 	{
-		neutral,
 		hungry,
 		horny,
 		dead,
@@ -33,9 +33,9 @@ public:
 
 private:
 	//some static inline varaibles. These may eventually becomve evolvable
-	static inline double m_MAX_HUNGER{ 70.0 };
+	static inline double m_MAX_HUNGER{ 100.0 };
 	static inline double m_REACH{ 5.0 };
-	static inline double m_HUNGER_THRESHOLD{ 40.0 };
+	static inline double m_HUNGER_THRESHOLD{ 60.0 };
 
 	const Species m_SPECIES{};
 	const double m_SPEED{};
@@ -70,8 +70,9 @@ public:
 	double get_max_hunger() const { return m_MAX_HUNGER; }
 	State get_state() const { return m_state; }
 	Species get_Species() const { return m_SPECIES; }
+	double get_eyesight() const { return m_EYESIGHT; }
 
-	void set_goal(SurvivalResource* new_goal) { m_goal = new_goal; }
+	void set_goal(SurvivalResource* new_goal);
 	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
 	bool goal_in_reach();
 
@@ -81,5 +82,7 @@ public:
 	//this will also force the gooblets to not immediately mate again
 	virtual void use() { m_hunger = m_HUNGER_THRESHOLD; }
 };
+
+std::ostream& operator<<(std::ostream& out, Creature::State state);
 
 #endif

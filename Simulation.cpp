@@ -8,7 +8,8 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	m_left_bound{left_bound},
 	m_right_bound{right_bound},
 	m_lower_bound{lower_bound},
-	m_upper_bound{upper_bound}
+	m_upper_bound{upper_bound},
+	m_foodManager{starting_eyesight}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -93,7 +94,13 @@ void Simulation::attempt_goal(Creature* gooblet) {
 			
 			//currently adding to female
 			//but should in a random desicion to put in male or female
-			m_femalePopulation.insert(gooblet->reproduce(mate));
+			if (m_random() % 2 == 0) {
+				m_femalePopulation.insert(gooblet->reproduce(mate));
+			}
+			else {
+				m_malePopulation.insert(gooblet->reproduce(mate));
+			}
+			
 			break;
 		}
 		gooblet->set_goal(nullptr);
@@ -106,10 +113,11 @@ void Simulation::assign_goal(Creature* gooblet, bool isFemale) {
 		return;
 	}
 
-	Vector2d position = gooblet->get_position();
+	const Vector2d position{ gooblet->get_position() };
+	const double eyesight{ gooblet->get_eyesight() };
 	switch (gooblet->get_state()) {
 	case Creature::State::hungry:
-		gooblet->set_goal(m_foodManager.find_closest_to(position));
+		gooblet->set_goal(m_foodManager.find_closest_to(position, eyesight));
 		break;
 	case Creature::State::horny:
 		if (isFemale) {
@@ -124,18 +132,37 @@ void Simulation::assign_goal(Creature* gooblet, bool isFemale) {
 
 void Simulation::update() {
 	//make sure food is up to date
-	m_foodManager.update();
+	// We will need to first figure out the max eyesight for this
+	double max_eyesight{};
+	for (Creature* gooblet : m_femalePopulation) {
+		if (gooblet->get_eyesight() > max_eyesight) {
+			max_eyesight = gooblet->get_eyesight();
+		}
+	}
+	for (Creature* gooblet : m_malePopulation) {
+		if (gooblet->get_eyesight() > max_eyesight) {
+			max_eyesight = gooblet->get_eyesight();
+		}
+	}
+	m_foodManager.update(max_eyesight);
 
+	//make sure populations are up to date
+	update_population(m_femalePopulation, true);
+	update_population(m_malePopulation, false);
+
+}
+
+void::Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
 	//make sure everyone has a goal
-	for (Creature* female : m_femalePopulation) {
-		assign_goal(female, true);
+	for (Creature* animal : population) {
+		assign_goal(animal, isFemale);
 	}
 
-	m_femalePopulation.update();
+	population.update();
 
-	for (Creature* female : m_femalePopulation) {
-		female->move();
-		attempt_goal(female);
+	for (Creature* animal : population) {
+		animal->move();
+		attempt_goal(animal);
 	}
 
 }
@@ -170,6 +197,18 @@ double Simulation::average_speed() const {
 
 	for (const Creature* male : m_malePopulation) {
 		total += male->get_speed();
+	}
+	return total / population_size();
+}
+
+double Simulation::average_eyesight() const {
+	double total{};
+	for (const Creature* female : m_femalePopulation) {
+		total += female->get_eyesight();
+	}
+
+	for (const Creature* male : m_malePopulation) {
+		total += male->get_eyesight();
 	}
 	return total / population_size();
 }

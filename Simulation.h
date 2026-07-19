@@ -17,7 +17,7 @@ private:
 	const double m_upper_bound{};
 	const double m_lower_bound{};
 
-	ResourceFinder<FoodSource> m_foodManager{};
+	ResourceFinder<FoodSource> m_foodManager{100.0};
 
 	ResourceSet<Creature> m_femalePopulation{};
 	ResourceSet<Creature> m_malePopulation{};
@@ -38,6 +38,9 @@ private:
 
 	//makes sure the gooblet has a goal (if possible)
 	void assign_goal(Creature* gooblet, bool isFemale);
+
+	//updates a population of cretures
+	void update_population(ResourceSet<Creature>& population, bool isFemale);
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		double starting_speed, double starting_eyesight, int initial_population,
@@ -47,7 +50,6 @@ public:
 
 	//moves the simulation forward one tick
 	void update();
-
 	//prints information about the current population
 	void print_population() const;
 	//prints information about the current foodsources
@@ -55,6 +57,7 @@ public:
 
 	int population_size() const;
 	double average_speed() const;
+	double average_eyesight() const;
 
 	//helper member function so that the males are all immediately sexually available
 	//helpful during initial testing when I want only one gender walking around

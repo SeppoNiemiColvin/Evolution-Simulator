@@ -43,11 +43,12 @@ public:
 	//updates the resources clearing out those that are dead
 	//and shifting availability for the remaining
 	void update() {
+		std::vector<T*> graveyard{};
 		for (auto& resource : m_all_resources) {
 			resource->update();
 			if (resource->is_dead()) {
-				erase(resource);
-				break;
+				graveyard.push_back(resource);
+				continue;
 			}
 
 			if (resource->is_available()) {
@@ -56,6 +57,9 @@ public:
 			else {
 				m_available_resources.erase(resource);
 			}
+		}
+		for (auto& skeleton : graveyard) {
+			erase(skeleton);
 		}
 	}
 

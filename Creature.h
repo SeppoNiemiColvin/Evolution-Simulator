@@ -5,6 +5,7 @@
 #include <random>
 #include <iostream>
 #include "SurvivalResource.h"
+#include "HalfPlane.h"
 
 using Eigen::Vector2d;
 
@@ -81,6 +82,8 @@ public:
 	//This requires a lot of energy so hunger get set to the threshold
 	//this will also force the gooblets to not immediately mate again
 	virtual void use() { m_hunger = m_HUNGER_THRESHOLD; }
+
+	friend void HalfPlane::push_out(Creature* creature) const;
 };
 
 std::ostream& operator<<(std::ostream& out, Creature::State state);

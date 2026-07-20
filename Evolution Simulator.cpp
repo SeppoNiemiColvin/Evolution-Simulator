@@ -9,25 +9,12 @@
 #include <array>
 
 #include "Simulation.h"
-
+#include "HalfPlane.h"
 
 void acheive_goal(Creature& gooblet);
 
 int main()
 {
-    std::vector<Vector2d> foodLocations{
-        Vector2d(-50.0, 75.0), //0
-        Vector2d(300.0, 40.0), //1
-        Vector2d(-400.0, -200.0), //2
-        Vector2d(250.0, -100.0), //3
-        Vector2d(100.0, 70.0), //4
-        Vector2d(-200, 400.0),//5
-        Vector2d(20.0, -300.0), //6
-        Vector2d(-130.0, -350.0), //7
-        Vector2d(-450.0, 150.0), //8
-        Vector2d(400.0, 350.0), //9
-        Vector2d(10.0, 200.0) //10
-    };
     double map_size{ 1e3 };
     double food_radius{ 30.0 };
     double food_area{ food_radius * food_radius * 3.14159 };
@@ -35,20 +22,30 @@ int main()
     std::cout << food_number << std::endl;
     Simulation simulation{ -map_size, map_size, -map_size, map_size, 10.0, 4 * food_radius, 20,food_number };
 
-    for (int time{}; time < 7000; ++time) {
-        if (time % 100 == 0) {
-            std::cout << "Time: " << time << std::endl;
-            std::cout << "Population: " << simulation.population_size() << std::endl;
-            std::cout << "Average Speed: " << simulation.average_speed() << std::endl;
-            std::cout << "Average Eyesight: " << simulation.average_eyesight() << std::endl;
-            std::cout << std::endl;
+    Creature* gooblet = new Creature(Vector2d(10.0, 10.0), 10.0, 150.0);
+    gooblet->print();
+
+    const HalfPlane left{ Vector2d(1,0), Vector2d{} };
+    const HalfPlane bottom{ Vector2d(0,1) , Vector2d{} };
+    const HalfPlane right{ Vector2d(-1,0), Vector2d(30.0, 0.0) };
+    const HalfPlane top{ Vector2d(0,-1), Vector2d(0, 30.0) };
+    const HalfPlane diagonal(Vector2d(-1, -1), Vector2d(20.0, 20.0));
+    const std::array<HalfPlane, 5> walls{ left, right, bottom, top, diagonal};
+    std::cout << diagonal.point_on_line();
+    for (int timer{}; timer < 20; ++timer) {
+        gooblet->move();
+        std::cout << "Timer: " << timer << std::endl;
+        std::cout << gooblet->get_position() << std::endl;
+        for (auto& wall : walls) {
+            wall.push_out(gooblet);
         }
-        simulation.update();
+        std::cout << gooblet->get_position() << std::endl << std::endl;
     }
 
-    std::cout << std::endl << simulation.population_size() << std::endl;
-    std::cout << simulation.average_speed() << std::endl;
+
     return 0;
+
+
 }
 
 

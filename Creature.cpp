@@ -88,7 +88,7 @@ void Creature::print() const {
 void Creature::move_neutral() {
 	//choose a random direction to walk
 	static std::mt19937_64 m_generator;
-	static std::uniform_real_distribution distribution(0.0, 3.14159);
+	static std::uniform_real_distribution distribution(0.0, 2*3.14159);
 	const double angle{ distribution(m_generator) };
 	m_position(0) += m_SPEED * cos(angle);
 	m_position(1) += m_SPEED * sin(angle);

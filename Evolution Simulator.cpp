@@ -9,7 +9,7 @@
 #include <array>
 
 #include "Simulation.h"
-#include "HalfPlane.h"
+#include "Rectangle.h"
 
 void acheive_goal(Creature& gooblet);
 
@@ -19,29 +19,24 @@ int main()
     double food_radius{ 30.0 };
     double food_area{ food_radius * food_radius * 3.14159 };
     int food_number{ static_cast<int>(map_size * map_size / food_area) };
-    std::cout << food_number << std::endl;
     Simulation simulation{ -map_size, map_size, -map_size, map_size, 10.0, 4 * food_radius, 20,food_number };
 
-    Creature* gooblet = new Creature(Vector2d(10.0, 10.0), 10.0, 150.0);
+    Rectangle base_map{ 0.0, 50.0, 0.0 , 50.0 };
+    Rectangle obstacle{ 20.0, 30.0, 20.0, 35.0 };
+    Creature* gooblet = new Creature(Vector2d(15.0, 15.0), 10.0, 50.0);
     gooblet->print();
 
-    const HalfPlane left{ Vector2d(1,0), Vector2d{} };
-    const HalfPlane bottom{ Vector2d(0,1) , Vector2d{} };
-    const HalfPlane right{ Vector2d(-1,0), Vector2d(30.0, 0.0) };
-    const HalfPlane top{ Vector2d(0,-1), Vector2d(0, 30.0) };
-    const HalfPlane diagonal(Vector2d(-1, -1), Vector2d(20.0, 20.0));
-    const std::array<HalfPlane, 5> walls{ left, right, bottom, top, diagonal};
-    std::cout << diagonal.point_on_line();
-    for (int timer{}; timer < 20; ++timer) {
+    for (int time{}; time < 50; ++time) {
         gooblet->move();
-        std::cout << "Timer: " << timer << std::endl;
-        std::cout << gooblet->get_position() << std::endl;
-        for (auto& wall : walls) {
-            wall.push_out(gooblet);
+        std::cout << "Before Adjustment:\n" << gooblet->get_position() << std::endl;
+        base_map.pull_inside(gooblet);
+        if (obstacle.is_inside(gooblet->get_position())) {
+            std::cout << "!!!\n";
+            obstacle.push_out(gooblet);
         }
-        std::cout << gooblet->get_position() << std::endl << std::endl;
+        std::cout << "After Adjustment:\n" <<gooblet->get_position();
+        std::cout << std::endl << std::endl;
     }
-
 
     return 0;
 

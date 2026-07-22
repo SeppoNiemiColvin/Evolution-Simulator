@@ -5,20 +5,17 @@
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	double starting_speed, double starting_eyesight, int population_size,
 	std::vector<Vector2d> foodLocations) :
-	m_left_bound{left_bound},
-	m_right_bound{right_bound},
-	m_lower_bound{lower_bound},
-	m_upper_bound{upper_bound},
+	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
 	m_foodManager{starting_eyesight}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
-	assert(m_left_bound < m_right_bound && "Check Horizontal Bounds");
-	assert(m_lower_bound < m_right_bound && "Check Vertical Bounds");
+	assert(left_bound < right_bound && "Check Horizontal Bounds");
+	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
 	assert(starting_speed > 0 && "Need positive starting speed");
 	assert(starting_eyesight > 0 && "Need positive starting eyesight");
-	
+
 	//get the food manager set up
 	std::vector<FoodSource> food{};
 	for (auto& location : foodLocations) {
@@ -31,15 +28,13 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	double starting_speed, double starting_eyesight, int population_size, int food_number) :
-	m_left_bound{ left_bound },
-	m_right_bound{ right_bound },
-	m_lower_bound{ lower_bound },
-	m_upper_bound{ upper_bound }
+	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
+	m_foodManager{ starting_eyesight }
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
-	assert(m_left_bound < m_right_bound && "Check Horizontal Bounds");
-	assert(m_lower_bound < m_right_bound && "Check Vertical Bounds");
+	assert(left_bound < right_bound && "Check Horizontal Bounds");
+	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
 	assert(starting_speed > 0 && "Need positive starting speed");
 	assert(starting_eyesight > 0 && "Need positive starting eyesight");
@@ -47,25 +42,18 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	//get the food manager set up
 	std::vector<FoodSource> food{};
 	for (int i{}; i < food_number; ++i) {
-		food.push_back(FoodSource(random_position()));
+		food.push_back(FoodSource(m_map_base.random_point()));
 	}
 	m_foodManager.extend(food);
 
 	add_random_population(population_size, starting_speed, starting_eyesight);
 }
 
-Vector2d Simulation::random_position() {
-	//set up our random distributions
-	static std::uniform_real_distribution horizontal(m_left_bound, m_right_bound);
-	static std::uniform_real_distribution vertical(m_lower_bound, m_right_bound);
-
-	return Vector2d(horizontal(m_random), vertical(m_random));
-}
 
 void Simulation::add_random_population(int population_size, double speed, double eyesight) {
 	for (int i{}; i < population_size; ++i) {
-		m_femalePopulation.insert(new Creature{ random_position(), speed, eyesight });
-		m_malePopulation.insert(new Creature{ random_position(), speed, eyesight });
+		m_femalePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+		m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
 	}
 }
 
@@ -162,6 +150,7 @@ void::Simulation::update_population(ResourceSet<Creature>& population, bool isFe
 
 	for (Creature* animal : population) {
 		animal->move();
+		m_map_base.pull_inside(animal);
 		attempt_goal(animal);
 	}
 

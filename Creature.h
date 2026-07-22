@@ -5,7 +5,9 @@
 #include <random>
 #include <iostream>
 #include "SurvivalResource.h"
+#include "Region.h"
 #include "HalfPlane.h"
+#include "Rectangle.h"
 
 using Eigen::Vector2d;
 
@@ -84,6 +86,8 @@ public:
 	virtual void use() { m_hunger = m_HUNGER_THRESHOLD; }
 
 	friend void HalfPlane::push_out(Creature* creature) const;
+	friend void Region::pull_inside(Creature* creature) const;
+	friend void Rectangle::push_out(Creature* creatue) const;
 };
 
 std::ostream& operator<<(std::ostream& out, Creature::State state);

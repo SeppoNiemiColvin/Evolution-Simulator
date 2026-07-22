@@ -3,7 +3,7 @@
 
 #include "Region.h"
 #include <Eigen/Dense>
-
+class Creature;
 
 using Eigen::Vector2d;
 
@@ -16,11 +16,17 @@ private:
 public:
 	HalfPlane(Vector2d normal, double affine_djusment);
 	HalfPlane(Vector2d normal, Vector2d point);
-	bool is_inside(const Vector2d position) const;
-	Vector2d get_nearest(const Vector2d position) const;
+	HalfPlane();
+
+	bool is_inside(const Vector2d& position) const;
+	Vector2d get_nearest(const Vector2d& position) const;
 	Vector2d point_on_line() const;
-	double get_distance(const Vector2d position) const;
+	double get_distance(const Vector2d& position) const;
 	void push_out(Creature* creature) const;
+
+	//this will produce the point from point_on_line
+	//mainly included for consistency with other Region classes
+	Vector2d random_point() const { return point_on_line(); }
 };
 
 #endif

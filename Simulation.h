@@ -5,6 +5,7 @@
 #include "ResourceSet.h"
 #include "Creature.h"
 #include "FoodSource.h"
+#include "HalfPlane.h"
 #include<Eigen/Dense>
 
 using Eigen::Vector2d;
@@ -12,10 +13,7 @@ using Eigen::Vector2d;
 class Simulation
 {
 private:
-	const double m_left_bound{};
-	const double m_right_bound{};
-	const double m_upper_bound{};
-	const double m_lower_bound{};
+	const Rectangle m_map_base{};
 
 	ResourceFinder<FoodSource> m_foodManager{100.0};
 
@@ -25,8 +23,6 @@ private:
 	//gives a sentralized place from which to generate randomness
 	std::mt19937_64 m_random;
 
-	//gets a random position within the bounds for this simulation
-	Vector2d random_position();
 	//adds population_size male and female individuals with these speed and eyesight
 	//mainly used as a helper function during set up
 	void add_random_population(int population_size, double speed, double eyesight);

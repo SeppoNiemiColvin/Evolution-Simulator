@@ -11,32 +11,32 @@
 #include "Simulation.h"
 #include "Rectangle.h"
 
-void acheive_goal(Creature& gooblet);
-
 int main()
 {
-    double map_size{ 1e3 };
+    double map_size{ 2e3 };
     double food_radius{ 30.0 };
     double food_area{ food_radius * food_radius * 3.14159 };
     int food_number{ static_cast<int>(map_size * map_size / food_area) };
-    Simulation simulation{ -map_size, map_size, -map_size, map_size, 10.0, 4 * food_radius, 20,food_number };
+    std::cout << food_number << std::endl;
+
+    Simulation simulation{ -map_size, map_size, -map_size, map_size, 10.0, 10 * food_radius, 20,food_number };
+
+    for (int time{}; time <= 1e4; ++time) {
+        if (time % 100 == 0) {
+            std::cout << "Time: " << time << std::endl;
+            std::cout << "Population: " << simulation.population_size() << '\n';
+            std::cout << "Average Speed: " << simulation.average_speed() << '\n';
+            std::cout << "Averge Acceleration: " << simulation.average_acceleration() << '\n';
+            std::cout << "Average Eyesight: " << simulation.average_eyesight() << '\n';
+            std::cout << std::endl;
+        }
+        simulation.update();
+    }
+
 
     Rectangle base_map{ 0.0, 50.0, 0.0 , 50.0 };
     Rectangle obstacle{ 20.0, 30.0, 20.0, 35.0 };
     Creature* gooblet = new Creature(Vector2d(15.0, 15.0), 10.0, 50.0);
-    gooblet->print();
-
-    for (int time{}; time < 50; ++time) {
-        gooblet->move();
-        std::cout << "Before Adjustment:\n" << gooblet->get_position() << std::endl;
-        base_map.pull_inside(gooblet);
-        if (obstacle.is_inside(gooblet->get_position())) {
-            std::cout << "!!!\n";
-            obstacle.push_out(gooblet);
-        }
-        std::cout << "After Adjustment:\n" <<gooblet->get_position();
-        std::cout << std::endl << std::endl;
-    }
 
     return 0;
 

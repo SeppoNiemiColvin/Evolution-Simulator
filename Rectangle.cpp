@@ -45,15 +45,19 @@ void Rectangle::push_out(Creature* creature) const {
 	const double mid_y{ (m_upper + m_lower) / 2 };
 	if (m_left < position(0) && position(0) <= mid_x) {
 		position(0) = m_left;
+		creature->m_velocity(0) *= -1;
 	}
 	if (mid_x < position(0) && position(0) < m_right) {
 		position(0) = m_right;
+		creature->m_velocity(0) *= -1;
 	}
 	if (m_lower < position(1) && position(1) <= mid_y) {
 		position(1) = m_lower;
+		creature->m_velocity(1) *= -1;
 	}
 	if (mid_y < position(1) && position(1) < m_upper) {
 		position(1) = m_upper;
+		creature->m_velocity(1) *= -1;
 	}
 	creature->m_position = position;
 }

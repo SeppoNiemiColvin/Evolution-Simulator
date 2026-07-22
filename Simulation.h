@@ -37,6 +37,8 @@ private:
 
 	//updates a population of cretures
 	void update_population(ResourceSet<Creature>& population, bool isFemale);
+
+	double average_property(double (Creature::* property)() const) const;
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		double starting_speed, double starting_eyesight, int initial_population,
@@ -54,10 +56,7 @@ public:
 	int population_size() const;
 	double average_speed() const;
 	double average_eyesight() const;
-
-	//helper member function so that the males are all immediately sexually available
-	//helpful during initial testing when I want only one gender walking around
-	void males_eat();
+	double average_acceleration() const;
 };
 
 #endif

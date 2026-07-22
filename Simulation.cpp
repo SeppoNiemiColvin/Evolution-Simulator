@@ -1,6 +1,7 @@
 #include "Simulation.h"
 #include <random>
 #include <iostream>
+#include <functional>
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	double starting_speed, double starting_eyesight, int population_size,
@@ -57,13 +58,7 @@ void Simulation::add_random_population(int population_size, double speed, double
 	}
 }
 
-void Simulation::males_eat() {
-	for (auto& male : m_malePopulation) {
-		male->eat();
-	}
 
-	m_malePopulation.update();
-}
 
 void Simulation::attempt_goal(Creature* gooblet) {
 	if (gooblet->goal_in_reach()) {
@@ -198,6 +193,22 @@ double Simulation::average_eyesight() const {
 
 	for (const Creature* male : m_malePopulation) {
 		total += male->get_eyesight();
+	}
+	return total / population_size();
+}
+
+double Simulation::average_acceleration() const {
+	return average_property(&Creature::get_acceleration);
+}
+
+double Simulation::average_property(double (Creature::* property)() const)  const {
+	double total{};
+	for (const Creature* female : m_femalePopulation) {
+		total += std::invoke(property, female);
+	}
+
+	for (const Creature* male : m_malePopulation) {
+		total += std::invoke(property, male);
 	}
 	return total / population_size();
 }

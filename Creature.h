@@ -41,10 +41,12 @@ private:
 	static inline double m_HUNGER_THRESHOLD{ 60.0 };
 
 	const Species m_SPECIES{};
-	const double m_SPEED{};
+	const double m_MAX_SPEED{};
 	const double m_EYESIGHT{};
+	const double m_ACCELERATION{3.0};
 
 	Vector2d m_position{};
+	Vector2d m_velocity{};
 
 	double m_hunger{ m_HUNGER_THRESHOLD };
 
@@ -54,12 +56,14 @@ private:
 	SurvivalResource* m_goal{};
 	State m_state{ hungry };
 
+	//adjusts velocity when there is no particular destination
 	void move_neutral();
+	//adjusts velocity toward a particular goal
 	void move_toward(const Vector2d& target);
 
 public:
 	Creature( Vector2d position, double speed, double eyesight);
-
+	Creature(Vector2d position, double speed, double accelearation, double eyesight);
 	Creature* reproduce(Creature* other) const;
 	void update();
 	void print() const;
@@ -69,7 +73,8 @@ public:
 	bool is_dead() const { return m_state == dead; }
 	virtual bool is_available() const { return m_state == horny;  }
 	Vector2d get_position() const { return m_position; }
-	double get_speed() const { return m_SPEED; }
+	double get_speed() const { return m_MAX_SPEED; }
+	double get_acceleration() const { return m_ACCELERATION; }
 	double get_max_hunger() const { return m_MAX_HUNGER; }
 	State get_state() const { return m_state; }
 	Species get_Species() const { return m_SPECIES; }

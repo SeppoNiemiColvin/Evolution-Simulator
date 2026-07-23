@@ -3,44 +3,55 @@
 
 #include <iostream>
 #include <Eigen/Dense>
-#include <unordered_set>
 #include <random>
-#include <vector>
-#include <array>
-
+#include <fstream>
+#include <string>
 #include "Simulation.h"
 #include "Rectangle.h"
+#include "testingsuite.h"
 
 int main()
 {
-    double map_size{ 2e3 };
-    double food_radius{ 30.0 };
+    double map_size{ 5e3 };
+    double food_radius{ 15.0 * 5.0};
     double food_area{ food_radius * food_radius * 3.14159 };
     int food_number{ static_cast<int>(map_size * map_size / food_area) };
     std::cout << food_number << std::endl;
 
-    Simulation simulation{ -map_size, map_size, -map_size, map_size, 10.0, 10 * food_radius, 20,food_number };
+    Simulation simulation{ -map_size, map_size, -map_size, map_size,
+        10.0, 100.0, 20, food_number };
 
-    for (int time{}; time <= 1e4; ++time) {
-        if (time % 100 == 0) {
-            std::cout << "Time: " << time << std::endl;
-            std::cout << "Population: " << simulation.population_size() << '\n';
-            std::cout << "Average Speed: " << simulation.average_speed() << '\n';
-            std::cout << "Averge Acceleration: " << simulation.average_acceleration() << '\n';
-            std::cout << "Average Eyesight: " << simulation.average_eyesight() << '\n';
-            std::cout << std::endl;
-        }
-        simulation.update();
+    //request a file name
+    std::cout << "Enter a file name: ";
+    std::string file_name{};
+    std::cin >> file_name;
+
+    //set up an output file to receive the simulation data
+    std::ofstream output_file{ file_name };
+    if (!output_file) {
+        std::cerr << "Unable to open output file\n";
+        return 1;
     }
 
+    for (int time{}; time < 1e4; ++time) {
+        const int population{ simulation.population_size() };
+        const double speed{ simulation.average_speed() };
+        const double acceleration{ simulation.average_acceleration() };
+        const double eyesight{ simulation.average_eyesight() };
 
-    Rectangle base_map{ 0.0, 50.0, 0.0 , 50.0 };
-    Rectangle obstacle{ 20.0, 30.0, 20.0, 35.0 };
-    Creature* gooblet = new Creature(Vector2d(15.0, 15.0), 10.0, 50.0);
+        output_file << population << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
+        simulation.update();
 
-    return 0;
+        if (time % 100 == 0) {
+            std::cout << "Time:\t" << time << '\n';
+            std::cout << "Population:\t" << population << '\n';
+            std::cout << "Avg. Speed:\t" << speed << '\n';
+            std::cout << "Avg. Acc:\t" << acceleration << '\n';
+            std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
+            std::cout << std::endl;
 
-
+        }
+    }
 }
 
 

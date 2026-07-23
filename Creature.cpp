@@ -27,7 +27,7 @@ void Creature::move_toward(const Vector2d& target) {
 		m_velocity += DELTA;
 	}
 	else {
-		m_velocity = m_ACCELERATION * DELTA / DISTANCE;
+		m_velocity += m_ACCELERATION * DELTA / DISTANCE;
 	}
 	//make sure we aren't exceeding our max velocity
 	if (m_velocity.norm() > m_MAX_SPEED) {

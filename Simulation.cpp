@@ -24,11 +24,12 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	}
 	m_foodManager.extend(food);
 
-	add_random_population(population_size, starting_speed, starting_eyesight);
+	add_random_population(population_size, starting_speed, starting_eyesight, true);
 }
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	double starting_speed, double starting_eyesight, int population_size, int food_number) :
+	double starting_speed, double starting_eyesight, int population_size, int food_number, 
+	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
 	m_foodManager{ starting_eyesight }
 {
@@ -47,14 +48,17 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	}
 	m_foodManager.extend(food);
 
-	add_random_population(population_size, starting_speed, starting_eyesight);
+	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
 }
 
 
-void Simulation::add_random_population(int population_size, double speed, double eyesight) {
+void Simulation::add_random_population(int population_size, double speed, double eyesight,
+	bool bothGenders) {
 	for (int i{}; i < population_size; ++i) {
 		m_femalePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
-		m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+		if (bothGenders) {
+			m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+		}
 	}
 }
 
@@ -174,27 +178,11 @@ int Simulation::population_size() const {
 }
 
 double Simulation::average_speed() const {
-	double total{};
-	for (const Creature* female : m_femalePopulation) {
-		total += female->get_speed();
-	}
-
-	for (const Creature* male : m_malePopulation) {
-		total += male->get_speed();
-	}
-	return total / population_size();
+	return average_property(&Creature::get_speed);
 }
 
 double Simulation::average_eyesight() const {
-	double total{};
-	for (const Creature* female : m_femalePopulation) {
-		total += female->get_eyesight();
-	}
-
-	for (const Creature* male : m_malePopulation) {
-		total += male->get_eyesight();
-	}
-	return total / population_size();
+	return average_property(&Creature::get_eyesight);
 }
 
 double Simulation::average_acceleration() const {

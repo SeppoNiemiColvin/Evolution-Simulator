@@ -62,9 +62,14 @@ void Rectangle::push_out(Creature* creature) const {
 	creature->m_position = position;
 }
 
+double stretch(double point,double lower, double upper) {
+	return (upper - lower) * point + lower;
+}
+
 Vector2d Rectangle::random_point() const {
 	static std::mt19937_64 generator;
-	static std::uniform_real_distribution vertical(m_lower, m_upper);
-	static std::uniform_real_distribution horizontal(m_left, m_right);
-	return Vector2d(horizontal(generator), vertical(generator));
+	static std::uniform_real_distribution random(0.0, 1.0);
+	return Vector2d(stretch(random(generator), m_left, m_right),
+		stretch(random(generator), m_lower, m_upper));
 }
+

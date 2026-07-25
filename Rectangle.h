@@ -4,6 +4,13 @@
 #include "Region.h"
 #include <Eigen/Dense>
 
+
+/*
+* A Region that holds a basic rectangle
+* Designed to hold the overall map to keep creatures inside it
+* but can be used when you need other simple regions
+*/
+
 class Creature;
 
 using Eigen::Vector2d;

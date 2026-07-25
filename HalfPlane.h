@@ -7,6 +7,11 @@ class Creature;
 
 using Eigen::Vector2d;
 
+/*
+* A region that models a half plane in point normal form.
+* Mainly designed to act as a wall, but probably phased out in favor of rectangles
+* pulling creatures in
+*/
 class HalfPlane : public Region
 {
 private:

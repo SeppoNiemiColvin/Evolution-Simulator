@@ -26,6 +26,7 @@ public:
 	};
 
 
+	//current state of the gooblet
 	enum State
 	{
 		hungry,
@@ -39,15 +40,18 @@ private:
 	static inline double m_MAX_HUNGER{ 100.0 };
 	static inline double m_REACH{ 5.0 };
 	static inline double m_HUNGER_THRESHOLD{ 60.0 };
-
 	const Species m_SPECIES{};
+	
+	//movement properties. Evolvable traits
 	const double m_MAX_SPEED{};
 	const double m_EYESIGHT{};
 	const double m_ACCELERATION{3.0};
 
+	//to track current movement info
 	Vector2d m_position{};
 	Vector2d m_velocity{};
 
+	//current energy stores
 	double m_hunger{ m_HUNGER_THRESHOLD };
 
 	//these track the gooblets current deires.
@@ -64,12 +68,17 @@ private:
 public:
 	Creature( Vector2d position, double speed, double eyesight);
 	Creature(Vector2d position, double speed, double accelearation, double eyesight);
-	Creature* reproduce(Creature* other) const;
-	void update();
 	void print() const;
+
+	Creature* reproduce(Creature* other) const;
+
+	//basic functions that move the creature through based on chosen actions
+	void update();
+
 	void move();
 	void eat();
 
+	//getters describing the creature
 	bool is_dead() const { return m_state == dead; }
 	virtual bool is_available() const { return m_state == horny;  }
 	Vector2d get_position() const { return m_position; }
@@ -80,16 +89,18 @@ public:
 	Species get_Species() const { return m_SPECIES; }
 	double get_eyesight() const { return m_EYESIGHT; }
 
+	//goal tracking/control
 	void set_goal(SurvivalResource* new_goal);
 	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
 	bool goal_in_reach();
-
 	SurvivalResource* get_goal() { return m_goal; }
 	//as a Survival resource use means mate
 	//This requires a lot of energy so hunger get set to the threshold
 	//this will also force the gooblets to not immediately mate again
 	virtual void use() { m_hunger = m_HUNGER_THRESHOLD; }
 
+	//some friend functions that mainly exist to keep the creature in bounds
+	//and eventually add obstacles. They are friensd to allow them to modify the 
 	friend void HalfPlane::push_out(Creature* creature) const;
 	friend void Region::pull_inside(Creature* creature) const;
 	friend void Rectangle::push_out(Creature* creatue) const;

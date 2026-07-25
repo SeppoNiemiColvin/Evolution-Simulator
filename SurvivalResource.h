@@ -2,6 +2,11 @@
 #define SURVIVALRESOURCE209845
 #include <Eigen/Dense>
 
+/*
+* An abstract class to hold a type of thing that the creture may look for
+* and interact wtih. Designed to aid in polymorphism on the creature's end
+*/
+
 using Eigen::Vector2d;
 
 class SurvivalResource
@@ -10,7 +15,8 @@ public:
 	//get the position/anchor point of the resource
 	virtual Vector2d get_position() const = 0;
 
-	//for a lot of resources there aren't muliple points to choose from
+	//gets the nearest point for that survival resource.
+	// For a lot that would coincide with position
 	virtual Vector2d get_nearest(Vector2d position) const { return get_position(); }
 
 	//distance from the resource to the point

@@ -54,6 +54,8 @@ public:
 	//prints information about the current foodsources
 	void print_food() const;
 
+	//get some stats about the current state of the simulation
+	// average speed, eyesight, and acceleration all call on average_property
 	int population_size() const;
 	double average_speed() const;
 	double average_eyesight() const;

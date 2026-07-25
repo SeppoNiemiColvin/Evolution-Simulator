@@ -19,15 +19,23 @@ class ResourceFinder
 {
 public:
 	//we use ints for coordinates so floating point roundng errrors don't affect hashing
+	//set as its own type so that way it can be changed and treated as a hash loc rather than an int
 	using CoordPrehash = int;
+	//data structure that will make look up within eyessight range easier
 	using LocationLookUp = std::unordered_map<int, std::unordered_set<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and its distance
 
 private:
+	//this is the owner of the resources
 	std::vector<T> m_all_resources{};
+
 	LocationLookUp m_available{};
+	//how big should we make the blocks for our look up helpers
 	double m_block_size{ 100.0 };
 
+	/*
+	* Member functions:
+	*/
 	//converts the vector into a more reasonable thing to hash
 	// which groups positions into block size chunks
 	CoordPrehash prehash(const Vector2d position) {
@@ -66,7 +74,8 @@ public:
 	}
 
 
-
+	//makes sure individual resources are updated and arranges the resources into a dictionary
+	//that makes it easier to test which resources are within eyesight
 	void update(double max_eyesight) {
 		if (max_eyesight > m_block_size) {
 			m_block_size = max_eyesight + 20;
@@ -90,6 +99,7 @@ public:
 		}
 	}
 
+	//finds the resource closet to position within eyesight constraint
 	T* find_closest_to(Vector2d position, double eyesight) {
 		//if the eyesight is bigger than the block size, reupdate with that
 		if (eyesight > m_block_size) {
@@ -128,7 +138,8 @@ public:
 		}
 	}
 
-	void extend(std::vector<T> extension) {
+	//add the resources in extension to this resource finder
+	void extend(std::vector<T>& extension) {
 		for (T resource : extension) {
 			m_all_resources.push_back(resource);
 		}

@@ -62,6 +62,9 @@ void Rectangle::push_out(Creature* creature) const {
 	creature->m_position = position;
 }
 
+//stretches a point in the interval (0,1) to be in the interval (lower, upper)
+//this will allow us to have a single static pseudo random number generator +
+//distribution to use across various rectangles
 double stretch(double point,double lower, double upper) {
 	return (upper - lower) * point + lower;
 }

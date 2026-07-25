@@ -12,45 +12,15 @@
 
 int main()
 {
-    double map_size{ 5e3 };
-    double food_radius{ 15.0 * 5.0};
-    double food_area{ food_radius * food_radius * 3.14159 };
-    int food_number{ static_cast<int>(map_size * map_size / food_area) };
-    std::cout << food_number << std::endl;
+    //set up map sizes and food density to have multiple simulations at that density
+    double food_radius{ 30.0};
+    double map_delta{ 2.5e2 };
+    double base_map_size{ 1e3 };
 
-    Simulation simulation{ -map_size, map_size, -map_size, map_size,
-        10.0, 100.0, 20, food_number };
-
-    //request a file name
-    std::cout << "Enter a file name: ";
-    std::string file_name{};
-    std::cin >> file_name;
-
-    //set up an output file to receive the simulation data
-    std::ofstream output_file{ file_name };
-    if (!output_file) {
-        std::cerr << "Unable to open output file\n";
-        return 1;
-    }
-
-    for (int time{}; time < 1e4; ++time) {
-        const int population{ simulation.population_size() };
-        const double speed{ simulation.average_speed() };
-        const double acceleration{ simulation.average_acceleration() };
-        const double eyesight{ simulation.average_eyesight() };
-
-        output_file << population << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
-        simulation.update();
-
-        if (time % 100 == 0) {
-            std::cout << "Time:\t" << time << '\n';
-            std::cout << "Population:\t" << population << '\n';
-            std::cout << "Avg. Speed:\t" << speed << '\n';
-            std::cout << "Avg. Acc:\t" << acceleration << '\n';
-            std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
-            std::cout << std::endl;
-
-        }
+    for (int i{ 0 }; i < 8; ++i) {
+        std::string file_name{ ("BasicOnlyFoodSim" + std::to_string(i+4)) };
+        file_name += ".csv";
+        test_density(base_map_size + i * map_delta, food_radius, file_name);
     }
 }
 

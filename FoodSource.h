@@ -7,6 +7,9 @@
 
 using Eigen::Vector2d;
 
+/*
+* Designed to hold a source of food that replenishes over time in a given location/region
+*/
 class FoodSource : public SurvivalResource
 {
 private:

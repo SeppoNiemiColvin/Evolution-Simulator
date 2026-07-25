@@ -4,8 +4,10 @@
 #include <Eigen/Dense>
 
 /*
-* This is similar to ResourceFinder but designed so that
-* the resource can grow or shrink over time
+* This is similar to ResourceFinder but designed for creatures
+* so that the overall population can grow and shrink as creatures are born or
+* die off. This means the owner variable will be a set instead of a vector
+* and even the owner is managing pointers
 */
 
 using Eigen::Vector2d;

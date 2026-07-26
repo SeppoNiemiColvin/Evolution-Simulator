@@ -10,7 +10,7 @@
 * bound, but if the creature dies earlier we return the time when that happened.
 */
 int test_survivability(int bound) {
-	Simulation simulation{ 0.0, 300.0, 0.0, 300.0, 5.0, 150.0, 1, 1 , false };
+	Simulation simulation{ 0.0, 250.0, 0.0, 250.0, 10.0, 100.0, 1, 1 , false };
 	for (int time{}; time < bound; ++time) {
 		simulation.update();
 
@@ -23,10 +23,11 @@ int test_survivability(int bound) {
 }
 
 void wander(int bound) {
-	Simulation simulation{ 0.0, 300.0, 0.0, 300.0, 10.0, 100.0, 1, 1, false };
+	Simulation simulation{ 0.0, 250.0, 0.0, 250.0, 10.0, 100.0, 1, 1, false };
 	for (int time{}; time < bound; ++time) {
 		simulation.update();
 		std::cout << "Time: " << time << '\n';
+        simulation.print_population();
 		std::cout << '\n' << '\n';
 		if (simulation.population_size() == 0) {
 			return;
@@ -38,7 +39,7 @@ void wander(int bound) {
 void test_density(double map_size, double food_diameter, std::string& file_path) {
 	const double food_area{ food_diameter * food_diameter * 3.14159 };
 	const int food_number{ static_cast<int>(map_size * map_size / food_area) };
-	std::cout << food_number << std::endl;
+	std::cout << "Available Food: "<< food_number << std::endl;
 
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
         10.0, 100.0, 20, food_number };

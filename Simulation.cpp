@@ -178,7 +178,7 @@ int Simulation::population_size() const {
 }
 
 double Simulation::average_speed() const {
-	return average_property(&Creature::get_speed);
+	return average_property(&Creature::get_max_speed);
 }
 
 double Simulation::average_eyesight() const {

@@ -12,16 +12,13 @@
 
 int main()
 {
-    //set up map sizes and food density to have multiple simulations at that density
-    double food_radius{ 30.0};
-    double map_delta{ 2.5e2 };
-    double base_map_size{ 1e3 };
-
-    for (int i{ 0 }; i < 8; ++i) {
-        std::string file_name{ ("BasicOnlyFoodSim" + std::to_string(i+4)) };
-        file_name += ".csv";
-        test_density(base_map_size + i * map_delta, food_radius, file_name);
+    wander(1000);
+    std::cout << '\n' << '\n';
+    for (int i{ 0 }; i < 20; ++i) {
+        std::cout << test_survivability(1000) << '\n';
     }
+    std::string file{ "testing.csv" };
+    test_density(1e3, 60.0, file);
 }
 
 

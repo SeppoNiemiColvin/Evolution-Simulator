@@ -1,7 +1,10 @@
 #ifndef RESOURCE_SET_H38910
 #define RESOURCE_SET_H38910
 #include <unordered_set>
+#include <unordered_map>
 #include <Eigen/Dense>
+#include <utility>
+#include <vector>
 
 /*
 * This is similar to ResourceFinder but designed for creatures
@@ -15,19 +18,66 @@ using Eigen::Vector2d;
 template<typename T>
 class ResourceSet
 {
+public:
+	using CoordPrehash = int;
+	using LocationLookUp = std::unordered_map<CoordPrehash, std::vector<T*>>;
+	using Report = std::pair<T*, double>; //this records the closest resource and distance
+
 private:
 	std::unordered_set<T*> m_all_resources{};
-	std::unordered_set<T*> m_available_resources{};
-public:
-	//finds the available resource closest to position
-	T* find_closest_to(Vector2d position) {
+	LocationLookUp m_available_resources{};
+	double m_block_size{ 130.0 };
+
+	CoordPrehash prehash(const Vector2d& position) const {
+		const int x_coord{ static_cast<int>(position(0) / m_block_size) };
+		const int y_coord{ static_cast<int>(position(1) / m_block_size) };
+		return (x_coord << 6) | y_coord;
+	}
+
+	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) const {
+		return std::unordered_set<CoordPrehash>{
+			prehash(position),
+			prehash(position + eyesight * Vector2d(0, 1)),
+			prehash(position - eyesight * Vector2d(0, 1)),
+			prehash(position + eyesight * Vector2d(1, 0)),
+			prehash(position - eyesight * Vector2d(1, 0)),
+			prehash(position + eyesight * Vector2d(1, 1)),
+			prehash(position - eyesight * Vector2d(1, 1)),
+			prehash(position + eyesight * Vector2d(1, -1)),
+			prehash(position - eyesight * Vector2d(1, -1))
+		};
+	}
+
+	Report check_coords(const Vector2d& position, double eyesight, CoordPrehash coord_to_check) {
+		//handle no coords
+		if (!m_available_resources.contains(coord_to_check) || m_available_resources[coord_to_check].empty()) {
+			return Report{ nullptr, eyesight };
+		}
 		T* closest{};
-		double current_distance{};
-		for (T* resource : m_available_resources) {
-			const double distance{ resource -> get_distance(position)};
+		double current_distance{ eyesight };
+
+		for (auto resource : m_available_resources[coord_to_check]) {
+			const double distance{ resource->get_distance(position) };
 			if (!closest || distance < current_distance) {
 				current_distance = distance;
 				closest = resource;
+			}
+		}
+		return Report{ closest, current_distance };
+	}
+
+public:
+	//finds the available resource closest to position
+	T* find_closest_to(const Vector2d& position, double eyesight) {
+		T* closest{};
+		double distance{eyesight};
+
+		std::unordered_set<CoordPrehash> coords_to_check{ relevant_coords(position, eyesight) };
+		for (auto coord : coords_to_check) {
+			Report report{ check_coords(position, distance, coord) };
+			if (report.second < distance) {
+				closest = report.first;
+				distance = report.second;
 			}
 		}
 		return closest;
@@ -36,30 +86,33 @@ public:
 	//removes a resource from the ResourceSet
 	void erase(T* dead_resource) {
 		m_all_resources.erase(dead_resource);
-		if (dead_resource->is_available()) {
-			m_available_resources.erase(dead_resource);
-		}
+		CoordPrehash coords{ prehash(dead_resource->get_position()) };
 		delete dead_resource;
 	}
 
 	//updates the resources clearing out those that are dead
 	//and shifting availability for the remaining
-	void update() {
+	void update(const double eyesight) {
+		if (eyesight > m_block_size) {
+			m_block_size = eyesight + 30.0;
+			
+		}
+		m_available_resources.clear();
+
 		std::vector<T*> graveyard{};
 		for (auto& resource : m_all_resources) {
 			resource->update();
 			if (resource->is_dead()) {
+
 				graveyard.push_back(resource);
-				continue;
 			}
 
+			CoordPrehash coord{ prehash(resource->get_position()) };
 			if (resource->is_available()) {
-				m_available_resources.insert(resource);
-			}
-			else {
-				m_available_resources.erase(resource);
+				m_available_resources[coord].push_back(resource);
 			}
 		}
+
 		for (auto& skeleton : graveyard) {
 			erase(skeleton);
 		}
@@ -69,7 +122,8 @@ public:
 	void insert(T* new_resource) {
 		m_all_resources.insert(new_resource);
 		if (new_resource->is_available()) {
-			m_available_resources.insert(new_resource);
+			CoordPrehash coord{ prehash(new_resource->get_position()) };
+			m_available_resources[coord].push_back(new_resource);
 		}
 	}
 

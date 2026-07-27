@@ -5,6 +5,7 @@
 #include "ResourceSet.h"
 #include "Creature.h"
 #include "FoodSource.h"
+#include "WaterSource.h"
 #include "HalfPlane.h"
 #include<Eigen/Dense>
 
@@ -16,6 +17,7 @@ private:
 	const Rectangle m_map_base{};
 
 	ResourceFinder<FoodSource> m_foodManager{100.0};
+	ResourceFinder<WaterSource> m_waterManager{100.0};
 
 	ResourceSet<Creature> m_femalePopulation{};
 	ResourceSet<Creature> m_malePopulation{};
@@ -46,6 +48,10 @@ public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		double starting_speed, double starting_eyesight, int population_size, int food_number,
 		bool bothGenders = true);
+	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
+		double starting_speed, double starting_eyesight, int population_size, int food_number,
+		double water_area, int pond_number,
+		bool bothGenders = true);
 
 	//moves the simulation forward one tick
 	void update();
@@ -53,6 +59,7 @@ public:
 	void print_population() const;
 	//prints information about the current foodsources
 	void print_food() const;
+	void print_water() const;
 
 	//get some stats about the current state of the simulation
 	// average speed, eyesight, and acceleration all call on average_property

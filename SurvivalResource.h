@@ -5,6 +5,7 @@
 /*
 * An abstract class to hold a type of thing that the creture may look for
 * and interact wtih. Designed to aid in polymorphism on the creature's end
+* especially in plotting movement. 
 */
 
 using Eigen::Vector2d;
@@ -34,6 +35,7 @@ public:
 	virtual void print() const = 0;
 
 	virtual bool is_dead() { return false; }
+
 };
 
 #endif

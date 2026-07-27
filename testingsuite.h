@@ -15,7 +15,7 @@
 * it returns when it died or bound if it did not die
 */
 
-int test_survivability(int bound);
+int test_survivability(int bound, double food_distance, double water_density);
 
 /*
 * creates a single creature that wanders around a map,
@@ -32,4 +32,6 @@ void wander(int bound);
 */
 void test_density(double map_size, double food_diameter, std::string& file_path);
 
+//makes sure region intersection mechanics are working properly
+bool test_regions();
 #endif

@@ -12,13 +12,14 @@
 
 int main()
 {
-    wander(1000);
-    std::cout << '\n' << '\n';
+    std::cout << test_regions() << "\n\n";
+
     for (int i{ 0 }; i < 20; ++i) {
-        std::cout << test_survivability(1000) << '\n';
+        std::cout << test_survivability(1000, 40.0 , 0.1) << '\n';
     }
-    std::string file{ "testing.csv" };
-    test_density(1e3, 60.0, file);
+
+    std::string file_name{ "testing.csv" };
+    test_density(1e3, 30.0, file_name);
 }
 
 

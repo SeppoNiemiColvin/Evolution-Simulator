@@ -22,7 +22,7 @@ public:
 	//set as its own type so that way it can be changed and treated as a hash loc rather than an int
 	using CoordPrehash = int;
 	//data structure that will make look up within eyessight range easier
-	using LocationLookUp = std::unordered_map<int, std::unordered_set<T*>>;
+	using LocationLookUp = std::unordered_map<CoordPrehash, std::unordered_set<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and its distance
 
 private:
@@ -31,7 +31,7 @@ private:
 
 	LocationLookUp m_available{};
 	//how big should we make the blocks for our look up helpers
-	double m_block_size{ 100.0 };
+	double m_block_size{ 130.0 };
 
 	/*
 	* Member functions:
@@ -44,15 +44,15 @@ private:
 		return (x_coord << 6) | y_coord;
 	}
 
-	Report check_coords(Vector2d position, double eyesight, CoordPrehash coords_to_check) {
+	Report check_coords(const Vector2d& position, double eyesight, CoordPrehash coord_to_check) {
 		//handle no coords
-		if (!m_available.contains(coords_to_check) or m_available[coords_to_check].empty()) {
+		if (!m_available.contains(coord_to_check) || m_available[coord_to_check].empty()) {
 			return Report{ nullptr, eyesight };
 		}
 		T* closest{};
 		double current_distance{eyesight};
 
-		for (auto resource : m_available[coords_to_check]) {
+		for (auto resource : m_available[coord_to_check]) {
 			const double distance{ resource->get_distance(position) };
 			if (!closest || distance < current_distance) {
 				current_distance = distance;
@@ -60,6 +60,20 @@ private:
 			}
 		}
 		return Report{ closest, current_distance };
+	}
+
+	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) {
+		return std::unordered_set<CoordPrehash>{
+				prehash(position),
+				prehash(position + eyesight * Vector2d(0, 1)),
+				prehash(position - eyesight * Vector2d(0, 1)),
+				prehash(position + eyesight * Vector2d(1, 0)),
+				prehash(position - eyesight * Vector2d(1, 0)),
+				prehash(position + eyesight * Vector2d(1, 1)),
+				prehash(position - eyesight * Vector2d(1, 1)),
+				prehash(position + eyesight * Vector2d(1, -1)),
+				prehash(position - eyesight * Vector2d(1, -1))
+			};
 	}
 public:
 	ResourceFinder(std::vector<T>& all_resources, double  eyesight) :
@@ -78,7 +92,7 @@ public:
 	//that makes it easier to test which resources are within eyesight
 	void update(double max_eyesight) {
 		if (max_eyesight > m_block_size) {
-			m_block_size = max_eyesight + 20;
+			m_block_size = max_eyesight + 30.0;
 			m_available.clear();
 		}
 
@@ -99,8 +113,10 @@ public:
 		}
 	}
 
+	
+
 	//finds the resource closet to position within eyesight constraint
-	T* find_closest_to(Vector2d position, double eyesight) {
+	T* find_closest_to(const Vector2d& position, double eyesight) {
 		//if the eyesight is bigger than the block size, reupdate with that
 		if (eyesight > m_block_size) {
 			update(eyesight);
@@ -108,15 +124,7 @@ public:
 
 		//get what coordinates we need to check
 		std::unordered_set<CoordPrehash> coords_to_check{
-			prehash(position),
-			prehash(position + eyesight * Vector2d(0,1)),
-			prehash(position - eyesight * Vector2d(0,1)),
-			prehash(position + eyesight * Vector2d(1,0)),
-			prehash(position - eyesight * Vector2d(1,0)),
-			prehash(position + eyesight * Vector2d(1,1)),
-			prehash(position - eyesight * Vector2d(1,1)),
-			prehash(position + eyesight * Vector2d(1,-1)),
-			prehash(position - eyesight * Vector2d(1,-1))
+			relevant_coords(position, eyesight)
 		};
 
 		T* closest{};
@@ -129,6 +137,24 @@ public:
 			}
 		}
 		return closest;
+	}
+	//provides a vector of all available T within eyesight of position
+	std::vector<T*> within_eyesight(const Vector2d& position, double eyesight) {
+		std::vector<T*> answer{};
+		std::unordered_set<CoordPrehash> coords_to_check{
+			relevant_coords(position,eyesight)
+		};
+		for (auto coord : coords_to_check) {
+			if (!m_available.contains(coord) || m_available[coord].empty()) {
+				for (const auto resource : m_available[coord]) {
+					if (resource->get_distance(position) <= eyesight) {
+						answer.push_back(resource);
+					}
+				}
+			}
+		}
+
+		return answer;
 	}
 
 	//prints all the resources in this container
@@ -144,6 +170,26 @@ public:
 			m_all_resources.push_back(resource);
 		}
 		update(m_block_size);
+	}
+
+	std::vector<T>::const_iterator cbegin() const {
+		return m_all_resources.cbegin();
+	}
+
+	std::vector<T>::const_iterator cend() const {
+		return m_all_resources.cend();
+	}
+
+	std::vector<T>::iterator begin() {
+		return m_all_resources.begin();
+	}
+
+	std::vector<T>::iterator end() {
+		return m_all_resources.end();
+	}
+
+	int size() const {
+		return m_all_resources.size();
 	}
 };
 

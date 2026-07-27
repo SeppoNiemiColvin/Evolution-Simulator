@@ -12,7 +12,6 @@
 */
 
 class Creature;
-
 using Eigen::Vector2d;
 
 class Rectangle :
@@ -29,13 +28,18 @@ public:
     double get_left() const { return m_left; }
     double get_right() const { return m_right; }
     double get_lower() const { return m_lower; }
-    double get_upper() const { return m_right; }
+    double get_upper() const { return m_upper; }
     double get_area() const { return (m_right - m_left) * (m_upper - m_lower); }
     Vector2d get_nearest(const Vector2d& position) const;
     void push_out(Creature* creature) const;
     bool is_inside(const Vector2d& position) const;
     Vector2d random_point() const;
+    bool intersects(const Rectangle& rectangle) const;
+    bool line_intersects(const Vector2d& start, const Vector2d& end) const;
+
+    friend Rectangle operator+(const Rectangle& rect, const Vector2d& displacement);
 };
 
+Rectangle operator+(const Rectangle& rect, const Vector2d& displacement);
 #endif
 

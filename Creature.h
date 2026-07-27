@@ -32,8 +32,8 @@ public:
 	//to make the creature's needs more complex
 	enum Physical_Need
 	{
-		calories,
 		water,
+		calories,
 		num_needs
 	};
 
@@ -42,8 +42,8 @@ public:
 	//
 	enum State
 	{
-		hungry,
 		thirsty,
+		hungry,
 		horny,
 		dead,
 		num_states
@@ -53,13 +53,13 @@ private:
 
 	//reserve caps determine how much of that need the creature can store.
 	//water is lower to reflect that we need to drink more frequently/can't last as long without water as food
-	const std::array<double,num_needs> m_RESERVE_CAPS{100.0, 75.0};
+	const std::array<double,num_needs> m_RESERVE_CAPS{100.0, 100.0};
 	std::array<double,num_needs> m_current_reserves{ m_RESERVE_CAPS };
 
 	// these thresholds affect how the creature transitions between states
 	// providing the fraction of the reserve cap that must be met for matting can happen
 	//they are static to provide a species wide constraint if the caps evolve.
-	static inline std::array<double,num_needs> m_THRESHOLDS{ 0.6, 0.5 };
+	static inline std::array<double,num_needs> m_THRESHOLDS{ 0.4, 0.4 };
 
 	
 	//movement properties. Evolvable traits
@@ -106,6 +106,7 @@ public:
 
 	void move();
 	void eat();
+	void drink();
 
 	//getters describing the creature
 	bool is_dead() const { return m_state == State::dead; }

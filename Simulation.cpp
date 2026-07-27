@@ -1,5 +1,6 @@
 #include "Simulation.h"
 #include <random>
+#include <cmath>
 #include <iostream>
 #include <functional>
 
@@ -52,6 +53,73 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 }
 
 
+Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
+	double starting_speed, double starting_eyesight, int population_size, int food_number,
+	double water_area, int pond_number,
+	bool bothGenders) :
+	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
+	m_foodManager{ starting_eyesight }
+{
+	//set up a bunch of aserts for class requirements
+	//these should probably be made into exceptions as well
+	assert(left_bound < right_bound && "Check Horizontal Bounds");
+	assert(lower_bound < right_bound && "Check Vertical Bounds");
+	assert(population_size > 0 && "Need Positive Population size");
+	assert(starting_speed > 0 && "Need positive starting speed");
+	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+	assert(m_map_base.get_area() > water_area && "No land for the creatures");
+	assert((water_area > pond_number * starting_speed * starting_speed * 4.5) && "Not enough water for the ponds");
+
+
+	// create some non_overlapping watersources
+	std::vector<WaterSource> water{};
+	double remaining_area{ water_area };
+	for (int i{}; i < pond_number -1; ++i) {
+		const double max_dimension{ std::sqrt(remaining_area - (pond_number- i -1) * 4.001* starting_speed * starting_speed) };
+		std::uniform_real_distribution distribution(2*starting_speed, max_dimension);
+		double width{ distribution(m_random) };
+		double height{ distribution(m_random) };
+		remaining_area -= width * height;
+
+		// suptracting starting_speed from each so it won't hang off the edge too much
+		Rectangle pond{ -starting_speed, width - starting_speed, -starting_speed, height - starting_speed };
+		//find a place we can put the new pond
+		Vector2d point{ m_map_base.random_point()};
+		while (overlap(water, pond + point)) {
+			point = m_map_base.random_point();
+		}
+
+		water.push_back(WaterSource(pond + point));
+	}
+
+	//need the last pond to take up the remaiing area
+	std::uniform_real_distribution distribution(2 * starting_speed, remaining_area / (2 * starting_speed));
+	double width{ distribution(m_random) };
+	double height{ remaining_area / width };
+	Rectangle pond{ -starting_speed, width -starting_speed, -starting_speed, height - starting_speed };
+	Vector2d point{ m_map_base.random_point() };
+	while (overlap(water, pond + point)) {
+		point = m_map_base.random_point();
+	}
+	water.push_back(WaterSource(pond + point));
+	m_waterManager.extend(water);
+
+	//get the food manager set up
+	std::vector<FoodSource> food{};
+	for (int i{}; i < food_number; ++i) {
+		//find a point at least a constant times starting_eyesight away from any water sources
+		//to force the creatures to wander around.
+		Vector2d point{ m_map_base.random_point() };
+		while (m_waterManager.find_closest_to(point, starting_eyesight * 0.7)) {
+			point = m_map_base.random_point();
+		}
+
+		food.push_back(FoodSource(point));
+	}
+	m_foodManager.extend(food);
+
+	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+}
 void Simulation::add_random_population(int population_size, double speed, double eyesight,
 	bool bothGenders) {
 	for (int i{}; i < population_size; ++i) {
@@ -67,16 +135,17 @@ void Simulation::add_random_population(int population_size, double speed, double
 void Simulation::attempt_goal(Creature* gooblet) {
 	if (gooblet->goal_in_reach()) {
 		switch (gooblet->get_state()) {
+		case Creature::State::thirsty:
+			gooblet->drink();
+			break;
 		case Creature::State::hungry:
 			//eat
-			gooblet->get_goal()->use();
 			gooblet->eat();
 			break;
 		case Creature::State::horny:
 			//reproduce
-			Creature* mate{ m_malePopulation.find_closest_to(gooblet->get_position()) };
+			Creature* mate{ m_malePopulation.find_closest_to(gooblet->get_position(), gooblet->get_eyesight()) };
 			assert(mate && "goal_in_reach should ensure gooblet-> get_goal() is an option");
-			gooblet->get_goal()->use();
 			gooblet->use();
 			
 			//currently adding to female
@@ -90,6 +159,7 @@ void Simulation::attempt_goal(Creature* gooblet) {
 			
 			break;
 		}
+		gooblet->get_goal()->use();
 		gooblet->set_goal(nullptr);
 	}
 }
@@ -102,16 +172,23 @@ void Simulation::assign_goal(Creature* gooblet, bool isFemale) {
 
 	const Vector2d position{ gooblet->get_position() };
 	const double eyesight{ gooblet->get_eyesight() };
+	
+	//setting up to make the water block eyesight (
+	std::vector<WaterSource*> obstacles{ m_waterManager.within_eyesight(position, eyesight) };
+	std::vector<SurvivalResource*> goals{};
 	switch (gooblet->get_state()) {
+	case Creature::State::thirsty:
+		gooblet->set_goal(m_waterManager.find_closest_to(position, eyesight));
+		break;
 	case Creature::State::hungry:
 		gooblet->set_goal(m_foodManager.find_closest_to(position, eyesight));
 		break;
 	case Creature::State::horny:
 		if (isFemale) {
-			gooblet->set_goal(m_malePopulation.find_closest_to(position));
+			gooblet->set_goal(m_malePopulation.find_closest_to(position, eyesight));
 		}
 		else {
-			gooblet->set_goal(m_femalePopulation.find_closest_to(position));
+			gooblet->set_goal(m_femalePopulation.find_closest_to(position, eyesight));
 		}
 		break;
 	}
@@ -132,6 +209,9 @@ void Simulation::update() {
 		}
 	}
 	m_foodManager.update(max_eyesight);
+	m_waterManager.update(max_eyesight);
+	m_femalePopulation.update(max_eyesight);
+	m_malePopulation.update(max_eyesight);
 
 	//make sure populations are up to date
 	update_population(m_femalePopulation, true);
@@ -139,17 +219,20 @@ void Simulation::update() {
 
 }
 
-void::Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
+void Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
 	//make sure everyone has a goal
 	for (Creature* animal : population) {
 		assign_goal(animal, isFemale);
 	}
 
-	population.update();
-
 	for (Creature* animal : population) {
 		animal->move();
 		m_map_base.pull_inside(animal);
+		WaterSource* closest_pond{ m_waterManager.find_closest_to(
+			animal->get_position(), animal->get_eyesight()) };
+		if (closest_pond) {
+			closest_pond->push_out(animal);
+		}
 		attempt_goal(animal);
 	}
 
@@ -171,6 +254,10 @@ void Simulation::print_population() const {
 
 void Simulation::print_food() const {
 	m_foodManager.print();
+}
+
+void Simulation::print_water() const {
+	m_waterManager.print();
 }
 
 int Simulation::population_size() const {

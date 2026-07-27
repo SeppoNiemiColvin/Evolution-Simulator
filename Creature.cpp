@@ -9,6 +9,7 @@ Creature::Creature(Vector2d position, double speed, double eyesight) :
 	m_MAX_SPEED{ speed },
 	m_EYESIGHT{ eyesight }
 {
+	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
 }
 
 Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight) :
@@ -17,6 +18,7 @@ Creature::Creature(Vector2d position, double speed, double acceleration, double 
 	m_MAX_ACCELERATION{acceleration},
 	m_EYESIGHT{ eyesight }
 {
+	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
 }
 
 void Creature::acc_toward(const Vector2d& target) {
@@ -51,7 +53,7 @@ void Creature::acc_neutral() {
 void Creature::move() {
 	//figure out desired acceleration
 	if (m_goal) {
-		acc_toward(m_goal->get_position());
+		acc_toward(m_goal->get_nearest(m_position));
 	}
 	else {
 		acc_neutral();
@@ -82,7 +84,7 @@ void Creature::update() {
 	m_acceleration = Vector2d{};
 	//time passes and the creature's metabolism runs
 	m_current_reserves[calories] -= 1.0;
-	//m_current_reserves[water] -= 1.0;
+	m_current_reserves[water] -= 1.0;
 	
 	//check if state needs to switch and if so adjust the goal
 	// state will become dead if any reserve is depleted
@@ -94,20 +96,21 @@ void Creature::update() {
 		}
 	}
 
-	bool become_horny{ m_state != horny };
+	if (m_state < num_needs && !above_threshold(static_cast<Physical_Need>(m_state))) {
+		return;
+	}
 
 	for (int need{}; need < num_needs; ++need) {
 		if (!above_threshold(static_cast<Physical_Need>(need))) {
 			if (m_state != need) {
 				m_state = static_cast<State>(need);
 				m_goal = nullptr;
-				return;
 			}
-			become_horny = false;
+			return;
 		}
 	}
 
-	if (become_horny){
+	if (m_state != horny){
 		m_state = horny;
 		m_goal = nullptr;
 	}
@@ -115,6 +118,10 @@ void Creature::update() {
 
 void Creature::eat() {
 	m_current_reserves[calories] = m_RESERVE_CAPS[calories];
+}
+
+void Creature::drink() {
+	m_current_reserves[water] = m_RESERVE_CAPS[water];
 }
 
 Creature* Creature::reproduce(Creature* other) const{

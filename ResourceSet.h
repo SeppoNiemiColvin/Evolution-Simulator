@@ -5,12 +5,15 @@
 #include <Eigen/Dense>
 #include <utility>
 #include <vector>
+#include "Prehash.h"
 
 /*
 * This is similar to ResourceFinder but designed for creatures
 * so that the overall population can grow and shrink as creatures are born or
 * die off. This means the owner variable will be a set instead of a vector
 * and even the owner is managing pointers
+* Kept as a template so that if other resources grow/shrink/move die
+* They can use this as well
 */
 
 using Eigen::Vector2d;
@@ -19,7 +22,6 @@ template<typename T>
 class ResourceSet
 {
 public:
-	using CoordPrehash = int;
 	using LocationLookUp = std::unordered_map<CoordPrehash, std::vector<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and distance
 
@@ -29,9 +31,7 @@ private:
 	double m_block_size{ 130.0 };
 
 	CoordPrehash prehash(const Vector2d& position) const {
-		const int x_coord{ static_cast<int>(position(0) / m_block_size) };
-		const int y_coord{ static_cast<int>(position(1) / m_block_size) };
-		return (x_coord << 6) | y_coord;
+		return hash::prehash(position, m_block_size);
 	}
 
 	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) const {
@@ -66,6 +66,16 @@ private:
 		return Report{ closest, current_distance };
 	}
 
+	//adds an resource to the corresponding coord(s) iff it is available
+	void place_resource(T* resource) {
+		if (resource->is_available()) {
+			std::vector<CoordPrehash> coords{ resource->prehash(m_block_size) };
+			for (const auto coord : coords) {
+				m_available_resources[coord].push_back(resource);
+			}
+		}
+	}
+
 public:
 	//finds the available resource closest to position
 	T* find_closest_to(const Vector2d& position, double eyesight) {
@@ -83,12 +93,33 @@ public:
 		return closest;
 	}
 
+	std::vector<T*> within_eyesight(const Vector2d& position, double eyesight) {
+		std::vector<T*> answer{};
+		double distance{ eyesight };
+		
+		std::unordered_set<CoordPrehash> coords_to_check{ relevant_coords(position, eyesight) };
+		for (auto coord : coords_to_check) {
+			if (!m_available_resources.contains(coord) || m_available_resources[coord].empty()) {
+				continue;
+			}
+			for (const auto& resource : m_available_resources[coord]) {
+				if (resource->get_distance(position) <= eyesight) {
+					answer.push_back(resource);
+				}
+			}
+		}
+		return answer;
+	}
+
 	//removes a resource from the ResourceSet
 	void erase(T* dead_resource) {
 		m_all_resources.erase(dead_resource);
-		CoordPrehash coords{ prehash(dead_resource->get_position()) };
+		//CoordPrehash coords{ prehash(dead_resource->get_position()) };
 		delete dead_resource;
 	}
+
+
+
 
 	//updates the resources clearing out those that are dead
 	//and shifting availability for the remaining
@@ -107,10 +138,7 @@ public:
 				graveyard.push_back(resource);
 			}
 
-			CoordPrehash coord{ prehash(resource->get_position()) };
-			if (resource->is_available()) {
-				m_available_resources[coord].push_back(resource);
-			}
+			place_resource(resource);
 		}
 
 		for (auto& skeleton : graveyard) {

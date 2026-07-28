@@ -29,6 +29,8 @@ public:
     double get_right() const { return m_right; }
     double get_lower() const { return m_lower; }
     double get_upper() const { return m_upper; }
+    double get_height() const { return m_upper - m_lower; }
+    double get_width() const { return m_right - m_left; }
     double get_area() const { return (m_right - m_left) * (m_upper - m_lower); }
     Vector2d get_nearest(const Vector2d& position) const;
     void push_out(Creature* creature) const;

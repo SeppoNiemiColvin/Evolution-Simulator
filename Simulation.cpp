@@ -52,6 +52,27 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
 }
 
+//still in progress
+Simulation::Simulation(Rectangle map_base,
+	double starting_speed, double starting_eyesight, int population_size, int food_number,
+	std::vector<WaterSource> water_sources,
+	bool bothGenders) :
+	m_map_base{ map_base },
+	m_foodManager{ starting_eyesight },
+	m_waterManager{ water_sources, starting_eyesight}
+{
+	//set up a bunch of aserts for class requirements
+	//these should probably be made into exceptions as well
+	assert(population_size > 0 && "Need Positive Population size");
+	assert(starting_speed > 0 && "Need positive starting speed");
+	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+
+	add_random_food(food_number, starting_eyesight);
+
+	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+
+}
+
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	double starting_speed, double starting_eyesight, int population_size, int food_number,
@@ -105,6 +126,13 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	m_waterManager.extend(water);
 
 	//get the food manager set up
+	add_random_food(food_number, starting_eyesight);
+
+	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+}
+
+void Simulation::add_random_food(int food_number, double starting_eyesight) {
+	//get the food manager set up
 	std::vector<FoodSource> food{};
 	for (int i{}; i < food_number; ++i) {
 		//find a point at least a constant times starting_eyesight away from any water sources
@@ -118,7 +146,6 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	}
 	m_foodManager.extend(food);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
 }
 void Simulation::add_random_population(int population_size, double speed, double eyesight,
 	bool bothGenders) {
@@ -174,8 +201,8 @@ void Simulation::assign_goal(Creature* gooblet, bool isFemale) {
 	const double eyesight{ gooblet->get_eyesight() };
 	
 	//setting up to make the water block eyesight (
-	std::vector<WaterSource*> obstacles{ m_waterManager.within_eyesight(position, eyesight) };
-	std::vector<SurvivalResource*> goals{};
+	//std::vector<WaterSource*> obstacles{ m_waterManager.within_eyesight(position, eyesight) };
+	//std::vector<SurvivalResource*> goals{};
 	switch (gooblet->get_state()) {
 	case Creature::State::thirsty:
 		gooblet->set_goal(m_waterManager.find_closest_to(position, eyesight));

@@ -3,7 +3,13 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <vector>
+#include <Eigen/Dense>
 #include "Rectangle.h"
+#include "ResourceFinder.h"
+#include "WaterSource.h"
+
+using Eigen::Vector2d;
 
 /*
 * Sees how long a single creature can survive on its own up to some bound.
@@ -143,7 +149,114 @@ bool test_regions() {
     return true;
 }
 
-bool test_resource_finder() {
-    Creature* gooblet = new Creature{ Vector2d{},10.0, 100.0 };
+bool report_dousing_attempt(SurvivalResource* pond, Vector2d position, Vector2d* correct) {
+    static int attempt{};
+    attempt += 1;
+    if (!pond && !correct) {
+        return true;
+    }
+
+    if (!pond && correct) {
+        std::cout << "Failed to find water on attempt " << attempt << '\n';
+        return false;
+    }
+
+    if (pond && !correct) {
+        std::cout << "Found water incorrectly on attempt " << attempt << '\n';
+        return false;
+    }
+    const Vector2d nearest_point{ pond->get_nearest(position) };
+    if ((nearest_point - *correct).norm() > 1e-7) {
+        std::cout << "Found incorrect water on attempt " << attempt << '\n';
+        return false;
+    }
     return true;
+}
+
+bool test_resource_finder() {
+    std::vector<WaterSource> water{ WaterSource{10.0, 1000.0, 50.0, 1500.0},
+        WaterSource{-1000, -50, -500, -20},
+        WaterSource{30, 150, -300, 200},
+        WaterSource{-300,-150, 40, 100}
+    };
+    bool answer{ true };
+    ResourceFinder<WaterSource> water_manager{water, 130.0};
+
+    Vector2d position{};
+    WaterSource* pond{ water_manager.find_closest_to(Vector2d{}, 100.0)};
+    Vector2d* correct = new Vector2d(10.0, 50.0);
+    answer = answer || report_dousing_attempt(pond, position, correct);
+
+    position = Vector2d(1010, 1510);
+    pond = water_manager.find_closest_to(position, 100.0);
+    delete correct;
+    correct = new Vector2d(1000, 1500);
+    answer = answer || report_dousing_attempt(pond, position, correct);
+
+    pond = water_manager.find_closest_to(Vector2d{}, 40.0);
+    delete correct;
+    correct = nullptr;
+    answer = answer || report_dousing_attempt(pond, position, correct);
+
+
+    position = Vector2d(-40, -200);
+    pond = water_manager.find_closest_to(position, 100.0);
+    delete correct;
+    correct = new Vector2d(-50, -200);
+    answer = answer || report_dousing_attempt(pond, position, correct);
+    
+    delete correct;
+    correct = nullptr;
+
+    position = Vector2d{};
+    std::vector<WaterSource*> ponds = water_manager.within_eyesight(position, 100.0);
+
+    auto distanceToPoint{
+        [position](const WaterSource* a, const WaterSource* b) {
+            return a->get_distance(position) <= b->get_distance(position);
+        }
+    };
+
+    std::sort(ponds.begin(), ponds.end(), distanceToPoint);
+
+    constexpr int answer_size{ 3 };
+    if (ponds.size() != answer_size) {
+        answer = false;
+        std::cout << "Found incorrect number of ponds\n";
+    }
+    else {
+        std::array<int, answer_size> correct_ponds{ 2, 0, 1 };
+        for (int i{}; i < answer_size; ++i) {
+            if (correct_ponds[i] != ponds[i]->get_id()) {
+                answer = false;
+                std::cout << "Found incorrect pond at position " << i << '\n';
+            }
+        }
+    }
+    return answer;
+}
+
+/*
+* Designed to test the capabilitie of resource set and make sure it isn't
+* going too wonky
+*/
+bool test_resource_set() {
+    bool answer{ true };
+    constexpr int size{ 3 };
+    std::array<Vector2d, 3> starting_positions{
+        Vector2d(-5,-2), Vector2d(10.0, 10.0), Vector2d{100.0, 100.0}
+    };
+    ResourceSet<Creature> test_population{};
+    for (int i{}; i < size; ++i) {
+        test_population.insert(new Creature{ starting_positions[i], 10.0, 100.0 });
+    }
+    for (auto creature : test_population) {
+        creature->eat();
+    }
+
+    Creature* mate = test_population.find_closest_to(Vector2d{}, 100.0);
+    Vector2d* correct = new Vector2d(-5, -2);
+    answer = answer || report_dousing_attempt(mate, Vector2d{}, correct);
+
+    return answer;
 }

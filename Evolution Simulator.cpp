@@ -12,14 +12,13 @@
 
 int main()
 {
-    std::cout << test_regions() << "\n\n";
+    std::cout << "Region Test: " << test_regions() << "\n" << std::endl;
+    std::cout << "Resource Finder: " << test_resource_finder() << "\n" << std::endl;
+    std::cout << "Resource Set: " << test_resource_set() << '\n' << std::endl;
 
     for (int i{ 0 }; i < 20; ++i) {
-        std::cout << test_survivability(1000, 40.0 , 0.1) << '\n';
+        std::cout << test_survivability(1000, 90.0 , 1/15.0) << '\n';
     }
-
-    std::string file_name{ "testing.csv" };
-    test_density(1e3, 30.0, file_name);
 }
 
 

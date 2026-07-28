@@ -7,6 +7,7 @@
 #include<vector>
 #include<unordered_map>
 #include<utility>
+#include "Prehash.h"
 
 using Eigen::Vector2d;
 
@@ -18,9 +19,6 @@ template <typename T>
 class ResourceFinder
 {
 public:
-	//we use ints for coordinates so floating point roundng errrors don't affect hashing
-	//set as its own type so that way it can be changed and treated as a hash loc rather than an int
-	using CoordPrehash = int;
 	//data structure that will make look up within eyessight range easier
 	using LocationLookUp = std::unordered_map<CoordPrehash, std::unordered_set<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and its distance
@@ -38,13 +36,11 @@ private:
 	*/
 	//converts the vector into a more reasonable thing to hash
 	// which groups positions into block size chunks
-	CoordPrehash prehash(const Vector2d position) {
-		const int x_coord{static_cast<int>( position(0) / m_block_size) };
-		const int y_coord{ static_cast<int>(position(1) / m_block_size) };
-		return (x_coord << 6) | y_coord;
+	CoordPrehash prehash(const Vector2d& position) const {
+		return hash::prehash(position, m_block_size);
 	}
 
-	Report check_coords(const Vector2d& position, double eyesight, CoordPrehash coord_to_check) {
+	Report check_coords(const Vector2d& position, double eyesight,const CoordPrehash coord_to_check){
 		//handle no coords
 		if (!m_available.contains(coord_to_check) || m_available[coord_to_check].empty()) {
 			return Report{ nullptr, eyesight };
@@ -62,7 +58,7 @@ private:
 		return Report{ closest, current_distance };
 	}
 
-	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) {
+	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) const {
 		return std::unordered_set<CoordPrehash>{
 				prehash(position),
 				prehash(position + eyesight * Vector2d(0, 1)),
@@ -75,6 +71,28 @@ private:
 				prehash(position - eyesight * Vector2d(1, -1))
 			};
 	}
+
+	void add_available(T& resource) {
+		std::vector<CoordPrehash> coords{ resource.prehash(m_block_size) };
+
+		//need to make sure this resource is findable
+		for (const auto coord : coords) {
+			m_available[coord].insert(&resource);
+		}
+	}
+
+	void remove_unavailable(T& resource) {
+		std::vector<CoordPrehash> coords{ resource.prehash(m_block_size) };
+
+		for (const auto coord : coords) {
+			m_available[coord].erase(&resource);
+			if (m_available[coord].empty()) {
+				m_available.erase(coord);
+			}
+		}
+
+	}
+
 public:
 	ResourceFinder(std::vector<T>& all_resources, double  eyesight) :
 		m_all_resources{ all_resources },
@@ -98,30 +116,21 @@ public:
 
 		for (T& resource : m_all_resources) {
 			resource.update();
-			//this will likely need ot be adjusted once we get resources that are regions
-			CoordPrehash coords{ prehash(resource.get_position()) };
+
 			if (resource.is_available()) {
-				//need to make sure this resource is findable
-				m_available[coords].insert(&resource);
+				add_available(resource);
+
 			}
-			else if (m_available.contains(coords)){
-				m_available[coords].erase(&resource);
-				if (m_available[coords].empty()) {
-					m_available.erase(coords);
-				}
+			else {
+				remove_unavailable(resource);
 			}
 		}
 	}
 
-	
-
 	//finds the resource closet to position within eyesight constraint
 	T* find_closest_to(const Vector2d& position, double eyesight) {
 		//if the eyesight is bigger than the block size, reupdate with that
-		if (eyesight > m_block_size) {
-			update(eyesight);
-		}
-
+		assert(eyesight <= m_block_size && "Need to update first");
 		//get what coordinates we need to check
 		std::unordered_set<CoordPrehash> coords_to_check{
 			relevant_coords(position, eyesight)
@@ -140,18 +149,23 @@ public:
 	}
 	//provides a vector of all available T within eyesight of position
 	std::vector<T*> within_eyesight(const Vector2d& position, double eyesight) {
+		std::unordered_set<T*> seen{};
 		std::vector<T*> answer{};
 		std::unordered_set<CoordPrehash> coords_to_check{
 			relevant_coords(position,eyesight)
 		};
 		for (auto coord : coords_to_check) {
 			if (!m_available.contains(coord) || m_available[coord].empty()) {
-				for (const auto resource : m_available[coord]) {
-					if (resource->get_distance(position) <= eyesight) {
-						answer.push_back(resource);
-					}
+				continue;
+			}
+			for (const auto resource : m_available[coord]) {
+				if (resource->get_distance(position) <= eyesight && !seen.contains(resource)) {
+					answer.push_back(resource);
+					seen.insert(resource);
+
 				}
 			}
+			
 		}
 
 		return answer;

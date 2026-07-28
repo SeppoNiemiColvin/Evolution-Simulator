@@ -29,7 +29,7 @@ private:
 	//mainly used as a helper function during set up
 	void add_random_population(int population_size, double speed, double eyesight, bool bothGenders);
 	//adds food_number FoodSources randomly placed
-	void add_random_food(int food_number);
+	void add_random_food(int food_number, double starting_eyesight = 100);
 
 	//the creature in question will attempt its goal if possible
 	void attempt_goal(Creature* gooblet);
@@ -53,6 +53,10 @@ public:
 		double water_area, int pond_number,
 		bool bothGenders = true);
 
+	Simulation(Rectangle map_base,
+		double starting_speed, double starting_eyesight, int population_size, int food_number,
+		std::vector<WaterSource> water_sources,
+		bool bothGenders = true);
 	//moves the simulation forward one tick
 	void update();
 	//prints information about the current population

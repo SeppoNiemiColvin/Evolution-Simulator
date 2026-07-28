@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 #include "Prehash.h"
-
+#include <iostream>
 /*
 * This is similar to ResourceFinder but designed for creatures
 * so that the overall population can grow and shrink as creatures are born or
@@ -95,9 +95,11 @@ public:
 
 	std::vector<T*> within_eyesight(const Vector2d& position, double eyesight) {
 		std::vector<T*> answer{};
+		std::unordered_set<T*> seen{};
 		double distance{ eyesight };
 		
 		std::unordered_set<CoordPrehash> coords_to_check{ relevant_coords(position, eyesight) };
+
 		for (auto coord : coords_to_check) {
 			if (!m_available_resources.contains(coord) || m_available_resources[coord].empty()) {
 				continue;
@@ -132,6 +134,7 @@ public:
 
 		std::vector<T*> graveyard{};
 		for (auto& resource : m_all_resources) {
+
 			resource->update();
 			if (resource->is_dead()) {
 
@@ -176,7 +179,13 @@ public:
 	int size() const { return m_all_resources.size(); }
 
 	//number of resources that are actually available
-	int available_size() const { return m_available_resources.size(); }
+	int available_size() const {
+		int total{};
+		for (auto coord : m_available_resources) {
+			total += coord.second.size();
+		}
+		return total;
+	}
 };
 
 #endif

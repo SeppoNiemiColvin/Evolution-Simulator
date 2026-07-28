@@ -4,6 +4,7 @@
 #include <fstream>
 #include <array>
 #include <vector>
+#include <algorithm>
 #include <Eigen/Dense>
 #include "Rectangle.h"
 #include "ResourceFinder.h"
@@ -157,17 +158,18 @@ bool report_dousing_attempt(SurvivalResource* pond, Vector2d position, Vector2d*
     }
 
     if (!pond && correct) {
-        std::cout << "Failed to find water on attempt " << attempt << '\n';
+
+        std::cout << "Failed to find resource on attempt " << attempt << '\n';
         return false;
     }
 
     if (pond && !correct) {
-        std::cout << "Found water incorrectly on attempt " << attempt << '\n';
+        std::cout << "Found resource incorrectly on attempt " << attempt << '\n';
         return false;
     }
     const Vector2d nearest_point{ pond->get_nearest(position) };
     if ((nearest_point - *correct).norm() > 1e-7) {
-        std::cout << "Found incorrect water on attempt " << attempt << '\n';
+        std::cout << "Found incorrect resource on attempt " << attempt << '\n';
         return false;
     }
     return true;
@@ -191,19 +193,19 @@ bool test_resource_finder() {
     pond = water_manager.find_closest_to(position, 100.0);
     delete correct;
     correct = new Vector2d(1000, 1500);
-    answer = answer || report_dousing_attempt(pond, position, correct);
+    answer = answer && report_dousing_attempt(pond, position, correct);
 
-    pond = water_manager.find_closest_to(Vector2d{}, 40.0);
+    pond = water_manager.find_closest_to(Vector2d{}, 20.0);
     delete correct;
     correct = nullptr;
-    answer = answer || report_dousing_attempt(pond, position, correct);
+    answer = answer && report_dousing_attempt(pond, position, correct);
 
 
     position = Vector2d(-40, -200);
     pond = water_manager.find_closest_to(position, 100.0);
     delete correct;
     correct = new Vector2d(-50, -200);
-    answer = answer || report_dousing_attempt(pond, position, correct);
+    answer = answer && report_dousing_attempt(pond, position, correct);
     
     delete correct;
     correct = nullptr;
@@ -242,21 +244,111 @@ bool test_resource_finder() {
 */
 bool test_resource_set() {
     bool answer{ true };
-    constexpr int size{ 3 };
-    std::array<Vector2d, 3> starting_positions{
-        Vector2d(-5,-2), Vector2d(10.0, 10.0), Vector2d{100.0, 100.0}
+    constexpr int size{ 5 };
+    std::array<Vector2d, size> starting_positions{
+        Vector2d(-5,-2), Vector2d(10.0, 10.0), Vector2d{100.0, 100.0},
+        Vector2d( -200, 100), Vector2d( -300,-400)
     };
+
     ResourceSet<Creature> test_population{};
     for (int i{}; i < size; ++i) {
         test_population.insert(new Creature{ starting_positions[i], 10.0, 100.0 });
     }
-    for (auto creature : test_population) {
-        creature->eat();
-    }
 
+    //to make all the creatures available
+    for (auto creature : test_population) {
+        creature->drink();
+    }
+    test_population.update(100.0);
+
+    //make sure the population finds the correct closest creature in a few cases
     Creature* mate = test_population.find_closest_to(Vector2d{}, 100.0);
     Vector2d* correct = new Vector2d(-5, -2);
-    answer = answer || report_dousing_attempt(mate, Vector2d{}, correct);
 
+    answer = answer && report_dousing_attempt(mate, Vector2d{}, correct);
+
+    mate = test_population.find_closest_to(Vector2d(150, 150), 100.0);
+    delete correct;
+    correct = new Vector2d(100, 100);
+    answer = answer && report_dousing_attempt(mate, Vector2d(150, 150), correct);
+
+
+    mate = test_population.find_closest_to(Vector2d(150, 150), 10.0);
+    delete correct;
+    correct = nullptr;
+    answer = answer && report_dousing_attempt(mate, Vector2d(150, 150), correct);
+
+    //makesure within_eyesight works correctly
+    Vector2d position{};
+    std::vector<Creature*> mates{ test_population.within_eyesight(position, 100.0) };
+
+    constexpr int answer_size = 2;
+    if (mates.size() != answer_size) {
+        answer = false;
+        std::cout << "Found wrong number of mates\n";
+    }
+    else {
+        auto distanceToPoint{
+            [position](const Creature* a, const Creature* b) {
+                return a->get_distance(position) <= b->get_distance(position);
+            }
+        };
+        std::sort(mates.begin(), mates.end(), distanceToPoint);
+        std::array<Vector2d, answer_size> mate_positions{ Vector2d(-5,-2), Vector2d(10,10) };
+        for (int i{}; i < answer_size; ++i) {
+            if (mates[i]->get_position() != mate_positions[i]) {
+                answer = false;
+                std::cout << "Found wrong mate\n";
+            }
+        }
+    }
+
+    for (int i{}; i < 20; ++i) {
+        for (auto& creature : test_population) {
+            creature->move();
+        }
+        test_population.update(100.0);
+    }
+    
+    if (test_population.available_size() != 5) {
+        answer = false;
+        std::cout << "Incorrect number of available creatures\n";
+    }
+
+    //make sure creatures get removed from availability
+    for (int i{}; i < 40; ++i) {
+        test_population.update(100.0);
+    }
+    if (test_population.available_size() != 0) {
+        answer = false;
+        std::cout << "There should be no available creatures\n";
+    }
+
+    //make sure dying works
+    //to do that we will make sure te first creature is satiated and add a new born
+    //then update until the others die
+    for (auto& creature : test_population) {
+        creature->eat();
+        creature->drink();
+        break;
+    }
+    Creature* new_born = new Creature{ Vector2d(1.0, 30), 10.0, 100.0 };
+    new_born->drink();
+    test_population.insert(new_born);
+    new_born = nullptr;
+
+    for (int i{}; i < 50; ++i) {
+        test_population.update(100.0);
+    }
+    if (test_population.size() != 2) {
+        answer = false;
+        std::cout << "Incorrect Number of Survivors\n";
+    }
+    if (test_population.available_size() != 0) {
+        answer = false;
+        std::cout << "Incorrect number available";
+    }
+
+    delete correct;
     return answer;
 }

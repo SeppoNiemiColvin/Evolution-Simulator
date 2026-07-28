@@ -35,7 +35,9 @@ void test_density(double map_size, double food_diameter, std::string& file_path)
 //makes sure region intersection mechanics are working properly
 bool test_regions();
 
+//makes sure the resource finder is working well
 bool test_resource_finder();
 
+//makes sure the resource set is working well
 bool test_resource_set();
 #endif

@@ -17,8 +17,14 @@ int main()
     std::cout << "Resource Set: " << test_resource_set() << '\n' << std::endl;
 
     for (int i{ 0 }; i < 20; ++i) {
-        std::cout << test_survivability(1000, 90.0 , 1/15.0) << '\n';
+        std::cout << test_survivability(1000, 120.0 , 1/15.0) << '\n';
     }
+
+    std::string file_name{ "withWaterBig.csv" };
+    test_density(2e3, 30.0, file_name);
+
+    file_name = "withWaterSmall.csv";
+    test_density(1e3, 30.0, file_name);
 }
 
 

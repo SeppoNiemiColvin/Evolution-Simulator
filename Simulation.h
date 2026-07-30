@@ -16,8 +16,8 @@ class Simulation
 private:
 	const Rectangle m_map_base{};
 
-	ResourceFinder<FoodSource> m_foodManager{100.0};
-	ResourceFinder<WaterSource> m_waterManager{100.0};
+	ResourceFinder<FoodSource> m_foodManager{130.0};
+	ResourceFinder<WaterSource> m_waterManager{130.0};
 
 	ResourceSet<Creature> m_femalePopulation{};
 	ResourceSet<Creature> m_malePopulation{};
@@ -40,7 +40,7 @@ private:
 	//updates a population of cretures
 	void update_population(ResourceSet<Creature>& population, bool isFemale);
 
-
+	double total_reserves(Creature::Physical_Need need) const;
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		double starting_speed, double starting_eyesight, int initial_population,
@@ -72,6 +72,10 @@ public:
 	double average_eyesight() const;
 	double average_acceleration() const;
 	double average_property(double (Creature::* property)() const) const;
+
+	//calculates how many calories are there between all the creatures
+	double total_biomass() const;
+	double total_hydration() const;
 };
 
 #endif

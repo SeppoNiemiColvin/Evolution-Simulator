@@ -9,7 +9,8 @@ Creature::Creature(Vector2d position, double speed, double eyesight) :
 	m_MAX_SPEED{ speed },
 	m_EYESIGHT{ eyesight }
 {
-	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	//m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
 Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight) :
@@ -18,14 +19,15 @@ Creature::Creature(Vector2d position, double speed, double acceleration, double 
 	m_MAX_ACCELERATION{acceleration},
 	m_EYESIGHT{ eyesight }
 {
-	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	//m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
 void Creature::acc_toward(const Vector2d& target) {
 	m_acceleration = target - m_position - m_velocity;
-	//adjust for reach
-	m_acceleration *= (m_acceleration.norm() - .9 * m_REACH) / m_acceleration.norm();
-	
+	//adjust for reach, we will attempt to make it somewhere within range
+	m_acceleration *= std::fmax((m_acceleration.norm() - .7 * m_REACH) / m_acceleration.norm(),0);
+	m_acceleration -= .4 * m_velocity;
 }
 
 void Creature::acc_neutral() {
@@ -132,7 +134,6 @@ Creature* Creature::reproduce(Creature* other) const{
 
 	const double baby_speed{ (m_MAX_SPEED + mate.m_MAX_SPEED) / 2 + distribution(generator) };
 	double acceleration{ (m_MAX_ACCELERATION + mate.m_MAX_ACCELERATION) / 2 + .5 * distribution(generator) };
-	acceleration = std::fmin(baby_speed / 2, acceleration);
 	const double eyesight = (m_EYESIGHT + mate.m_EYESIGHT) / 2 + 5*distribution(generator);
 
 	return new Creature{ m_position, baby_speed, acceleration, eyesight };
@@ -163,6 +164,10 @@ void Creature::print() const {
 
 bool Creature::goal_in_reach() {
 	if (!m_goal) { return false; }
+	//creature needs to slow down to mate, eat, drink, ect
+	if (m_velocity.norm() > 2.0) {
+		return false;
+	}
 
 	if (!(m_goal->is_available())) {
 		//if the goal is no longer available drop it as a goal

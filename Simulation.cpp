@@ -8,7 +8,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	double starting_speed, double starting_eyesight, int population_size,
 	std::vector<Vector2d> foodLocations) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{starting_eyesight}
+	m_foodManager{starting_eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -32,7 +32,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	double starting_speed, double starting_eyesight, int population_size, int food_number, 
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ starting_eyesight }
+	m_foodManager{ starting_eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -58,8 +58,8 @@ Simulation::Simulation(Rectangle map_base,
 	std::vector<WaterSource> water_sources,
 	bool bothGenders) :
 	m_map_base{ map_base },
-	m_foodManager{ starting_eyesight },
-	m_waterManager{ water_sources, starting_eyesight}
+	m_foodManager{ starting_eyesight + 30.0 },
+	m_waterManager{ water_sources, starting_eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -79,7 +79,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	double water_area, int pond_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ starting_eyesight }
+	m_foodManager{ starting_eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -313,4 +313,23 @@ double Simulation::average_property(double (Creature::* property)() const)  cons
 		total += std::invoke(property, male);
 	}
 	return total / population_size();
+}
+
+double Simulation::total_reserves(Creature::Physical_Need need) const {
+	double total{};
+	for (const Creature* female : m_femalePopulation) {
+		total += female->get_current_reserve(need);
+	}
+	for (const Creature* male : m_malePopulation) {
+		total += male->get_current_reserve(need);
+	}
+	return total;
+}
+
+double Simulation::total_biomass() const {
+	return total_reserves(Creature::Physical_Need::calories);
+}
+
+double Simulation::total_hydration() const {
+	return total_reserves(Creature::Physical_Need::water);
 }

@@ -130,7 +130,10 @@ public:
 	//finds the resource closet to position within eyesight constraint
 	T* find_closest_to(const Vector2d& position, double eyesight) {
 		//if the eyesight is bigger than the block size, reupdate with that
-		assert(eyesight <= m_block_size && "Need to update first");
+		if (eyesight > m_block_size) {
+			m_block_size = eyesight + 30;
+			update(eyesight);
+		}
 		//get what coordinates we need to check
 		std::unordered_set<CoordPrehash> coords_to_check{
 			relevant_coords(position, eyesight)

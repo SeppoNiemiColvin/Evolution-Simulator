@@ -115,6 +115,7 @@ public:
 	double get_max_speed() const { return m_MAX_SPEED; }
 	double get_acceleration() const { return m_MAX_ACCELERATION; }
 	double get_max_energy() const { return m_RESERVE_CAPS[Physical_Need::calories]; }
+	double get_current_reserve(Physical_Need need) const { return m_current_reserves[need]; }
 	State get_state() const { return m_state; }
 	Species get_Species() const { return m_SPECIES; }
 	double get_eyesight() const { return m_EYESIGHT; }

@@ -53,16 +53,16 @@ void wander(int bound) {
 }
 
 //note that sim1 was map_size 2e3 and food_diameter 30.0
-void test_density(double map_size, double food_diameter, std::string& file_path) {
+void test_density(double map_size, double food_diameter, const std::string& file_path) {
     const double water_area{ map_size * map_size / 15 };
     const int pond_number{ static_cast<int>(water_area / 1e3) };
 
-	const double food_area{ food_diameter * food_diameter * 3.14159 };
+	const double food_area{ food_diameter * food_diameter * 3.141592 };
 	const int food_number{ static_cast<int>((map_size * map_size - water_area)/ food_area) };
 	std::cout << "Available Food: "<< food_number << std::endl;
 
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
-        10.0, 100.0, 100, food_number, water_area, pond_number };
+        10.0, 100.0, 200, food_number, water_area, pond_number };
 
 
     //set up an output file to receive the simulation data
@@ -73,7 +73,7 @@ void test_density(double map_size, double food_diameter, std::string& file_path)
     }
 
     //header for the csv
-    output_file << "Population" << ",Speed" << ",Acceleration" << ",Eyesight" << '\n';
+    output_file << "Population" << ",Biomass" << ",Speed" << ",Acceleration" << ",Eyesight" << '\n';
 
     //run the simulationa nd record results. print occasionally to keep updated
     for (int time{}; time < 1e4; ++time) {
@@ -81,14 +81,15 @@ void test_density(double map_size, double food_diameter, std::string& file_path)
         const double speed{ simulation.average_speed() };
         const double acceleration{ simulation.average_acceleration() };
         const double eyesight{ simulation.average_eyesight() };
-
-        output_file << population << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
+        const double biomass{ simulation.total_biomass() };
+        output_file << population << ',' << biomass << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
 
         simulation.update();
 
         if (time % 100 == 0) {
             std::cout << "Time:\t" << time << '\n';
             std::cout << "Population:\t" << population << '\n';
+            std::cout << "Biomass: \t" << biomass << '\n';
             std::cout << "Avg. Speed:\t" << speed << '\n';
             std::cout << "Avg. Acc:\t" << acceleration << '\n';
             std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
@@ -258,6 +259,7 @@ bool test_resource_set() {
     //to make all the creatures available
     for (auto creature : test_population) {
         creature->drink();
+        creature->eat();
     }
     test_population.update(100.0);
 
@@ -334,10 +336,11 @@ bool test_resource_set() {
     }
     Creature* new_born = new Creature{ Vector2d(1.0, 30), 10.0, 100.0 };
     new_born->drink();
+    new_born->eat();
     test_population.insert(new_born);
     new_born = nullptr;
 
-    for (int i{}; i < 50; ++i) {
+    for (int i{}; i < 60; ++i) {
         test_population.update(100.0);
     }
     if (test_population.size() != 2) {

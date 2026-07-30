@@ -12,19 +12,16 @@
 
 int main()
 {
-    std::cout << "Region Test: " << test_regions() << "\n" << std::endl;
-    std::cout << "Resource Finder: " << test_resource_finder() << "\n" << std::endl;
-    std::cout << "Resource Set: " << test_resource_set() << '\n' << std::endl;
+    assert(test_regions() && "Regions Failed");
+    assert(test_resource_finder() && "Resource Finder Failed");
+    assert(test_resource_set() && "Resource Set Failed");
 
     for (int i{ 0 }; i < 20; ++i) {
         std::cout << test_survivability(1000, 120.0 , 1/15.0) << '\n';
     }
 
-    std::string file_name{ "withWaterBig.csv" };
-    test_density(2e3, 30.0, file_name);
-
-    file_name = "withWaterSmall.csv";
-    test_density(1e3, 30.0, file_name);
+    std::string file_name{ "test.csv" };
+    test_density(2e3, 60.0, file_name);
 }
 
 

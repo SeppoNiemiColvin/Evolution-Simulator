@@ -12,22 +12,22 @@
 
 int main()
 {
-    std::cout << "Region Test: " << test_regions() << "\n" << std::endl;
-    std::cout << "Resource Finder: " << test_resource_finder() << "\n" << std::endl;
-    std::cout << "Resource Set: " << test_resource_set() << '\n' << std::endl;
+    assert(test_regions());
+    assert(test_resource_finder());
+    assert(test_resource_set());
 
     for (int i{ 0 }; i < 20; ++i) {
-        std::cout << test_survivability(1000, 120.0 , 1/15.0) << '\n';
+        std::cout << test_survivability(1000, 120.0, 1 / 15.0) << '\n';
     }
 
-    std::string file_name{ "withWaterBig.csv" };
-    test_density(2e3, 30.0, file_name);
+    for (int i{}; i < 10; ++i) {
+        std::string file_name{ "withWater1-" + std::to_string(i) + ".csv" };
+        test_density(2e3, 30.0, file_name);
+        file_name = "withWater2-" + std::to_string(i) + ".csv";
+        test_density(4e3, 60.0, file_name);
+    }
 
-    file_name = "withWaterSmall.csv";
-    test_density(1e3, 30.0, file_name);
 }
-
-
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
 // Debug program: F5 or Debug > Start Debugging menu
 

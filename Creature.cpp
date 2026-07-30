@@ -9,7 +9,7 @@ Creature::Creature(Vector2d position, double speed, double eyesight) :
 	m_MAX_SPEED{ speed },
 	m_EYESIGHT{ eyesight }
 {
-	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
 Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight) :
@@ -18,7 +18,7 @@ Creature::Creature(Vector2d position, double speed, double acceleration, double 
 	m_MAX_ACCELERATION{acceleration},
 	m_EYESIGHT{ eyesight }
 {
-	m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
+	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
 void Creature::acc_toward(const Vector2d& target) {

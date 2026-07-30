@@ -16,8 +16,8 @@ class Simulation
 private:
 	const Rectangle m_map_base{};
 
-	ResourceFinder<FoodSource> m_foodManager{100.0};
-	ResourceFinder<WaterSource> m_waterManager{100.0};
+	ResourceFinder<FoodSource> m_foodManager{130.0};
+	ResourceFinder<WaterSource> m_waterManager{130.0};
 
 	ResourceSet<Creature> m_femalePopulation{};
 	ResourceSet<Creature> m_malePopulation{};

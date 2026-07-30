@@ -82,6 +82,10 @@ void test_density(double map_size, double food_diameter, std::string& file_path)
         const double acceleration{ simulation.average_acceleration() };
         const double eyesight{ simulation.average_eyesight() };
 
+        if (population == 0) {
+            break;
+        }
+
         output_file << population << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
 
         simulation.update();
@@ -257,7 +261,7 @@ bool test_resource_set() {
 
     //to make all the creatures available
     for (auto creature : test_population) {
-        creature->drink();
+        creature->eat();
     }
     test_population.update(100.0);
 

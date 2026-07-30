@@ -65,7 +65,7 @@ private:
 	//movement properties. Evolvable traits
 	const double m_MAX_SPEED{};
 	const double m_EYESIGHT{};
-	const double m_MAX_ACCELERATION{5.0};
+	const double m_MAX_ACCELERATION{3.0};
 	//movement/action property. Not currently evolvable
 	static inline double m_REACH{ 5.0 };
 

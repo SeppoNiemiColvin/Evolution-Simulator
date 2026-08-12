@@ -27,7 +27,7 @@ private:
 
 	//adds population_size male and female individuals with these speed and eyesight
 	//mainly used as a helper function during set up
-	void add_random_population(int population_size, double speed, double eyesight, bool bothGenders);
+	void add_random_population(int population_size, double speed, double eyesight, bool bothGenders, bool thirst_enabled = true);
 	//adds food_number FoodSources randomly placed
 	void add_random_food(int food_number, double starting_eyesight = 100);
 
@@ -51,7 +51,7 @@ public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		double starting_speed, double starting_eyesight, int population_size, int food_number,
 		double water_area, int pond_number,
-		bool bothGenders = true);
+		bool bothGenders = true, bool thirst_enabled = true); 
 
 	Simulation(Rectangle map_base,
 		double starting_speed, double starting_eyesight, int population_size, int food_number,

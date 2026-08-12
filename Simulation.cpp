@@ -77,7 +77,7 @@ Simulation::Simulation(Rectangle map_base,
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	double starting_speed, double starting_eyesight, int population_size, int food_number,
 	double water_area, int pond_number,
-	bool bothGenders) :
+	bool bothGenders, bool thirst_enabled) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
 	m_foodManager{ starting_eyesight + 30.0 }
 {
@@ -128,7 +128,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	//get the food manager set up
 	add_random_food(food_number, starting_eyesight);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders, thirst_enabled);
 }
 
 void Simulation::add_random_food(int food_number, double starting_eyesight) {
@@ -148,11 +148,11 @@ void Simulation::add_random_food(int food_number, double starting_eyesight) {
 
 }
 void Simulation::add_random_population(int population_size, double speed, double eyesight,
-	bool bothGenders) {
+	bool bothGenders, bool thirst_enabled) {
 	for (int i{}; i < population_size; ++i) {
-		m_femalePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+		m_femalePopulation.insert(new Creature{ m_map_base.random_point(), speed, 3.0, eyesight , thirst_enabled});
 		if (bothGenders) {
-			m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+			m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed,3.0, eyesight, thirst_enabled });
 		}
 	}
 }

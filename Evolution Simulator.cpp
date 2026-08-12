@@ -20,12 +20,21 @@ int main()
         std::cout << test_survivability(1000, 120.0, 1 / 15.0) << '\n';
     }
 
-    for (int i{}; i < 10; ++i) {
-        std::string file_name{ "withWater1-" + std::to_string(i) + ".csv" };
-        test_density(2e3, 30.0, file_name);
-        file_name = "withWater2-" + std::to_string(i) + ".csv";
-        test_density(4e3, 60.0, file_name);
+    for (int run{}; run < 10; ++run) {
+        std::string run_piece{ "_run" + std::to_string(run) };
+
+        for (int density{}; density < 8; ++density) {
+            const double map_size{ 500.0 + density * 250 };
+            std::string file_prefix{ "simulation" + std::to_string(density) + run_piece};
+            std::string file{ file_prefix + "_withoutThirst.csv" };
+            test_density(map_size, file, false);
+
+            file= file_prefix + "_withThirst.csv";
+            test_density(map_size,  file, true);
+
+        }
     }
+
 
 }
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

@@ -12,11 +12,12 @@ Creature::Creature(Vector2d position, double speed, double eyesight) :
 	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
-Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight) :
+Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight, bool with_thirst) :
 	m_position{ position },
 	m_MAX_SPEED{ speed },
 	m_MAX_ACCELERATION{acceleration},
-	m_EYESIGHT{ eyesight }
+	m_EYESIGHT{ eyesight },
+	m_ENABLE_THIRST{with_thirst}
 {
 	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
@@ -84,7 +85,10 @@ void Creature::update() {
 	m_acceleration = Vector2d{};
 	//time passes and the creature's metabolism runs
 	m_current_reserves[calories] -= 1.0;
-	m_current_reserves[water] -= 1.0;
+	if (m_ENABLE_THIRST) {
+		m_current_reserves[water] -= 1.0;
+	}
+
 	
 	//check if state needs to switch and if so adjust the goal
 	// state will become dead if any reserve is depleted
@@ -132,10 +136,9 @@ Creature* Creature::reproduce(Creature* other) const{
 
 	const double baby_speed{ (m_MAX_SPEED + mate.m_MAX_SPEED) / 2 + distribution(generator) };
 	double acceleration{ (m_MAX_ACCELERATION + mate.m_MAX_ACCELERATION) / 2 + .5 * distribution(generator) };
-	acceleration = std::fmin(baby_speed / 2, acceleration);
 	const double eyesight = (m_EYESIGHT + mate.m_EYESIGHT) / 2 + 5*distribution(generator);
 
-	return new Creature{ m_position, baby_speed, acceleration, eyesight };
+	return new Creature{ m_position, baby_speed, acceleration, eyesight , m_ENABLE_THIRST};
 }
 
 //function to make printing positions nicer

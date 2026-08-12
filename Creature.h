@@ -69,6 +69,10 @@ private:
 	//movement/action property. Not currently evolvable
 	static inline double m_REACH{ 5.0 };
 
+	//this is to allow me to toggle the thirst mechanic on and off
+	//to more easily run comaprisons
+	const bool m_ENABLE_THIRST{ true };
+
 	//to track current movement/position info
 	Vector2d m_position{};
 	Vector2d m_velocity{};
@@ -96,7 +100,7 @@ private:
 
 public:
 	Creature( Vector2d position, double speed, double eyesight);
-	Creature(Vector2d position, double speed, double accelearation, double eyesight);
+	Creature(Vector2d position, double speed, double accelearation, double eyesight, bool with_thirst = true);
 	void print() const;
 
 	Creature* reproduce(Creature* other) const;

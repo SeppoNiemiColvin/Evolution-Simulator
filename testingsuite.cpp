@@ -53,16 +53,12 @@ void wander(int bound) {
 }
 
 //note that sim1 was map_size 2e3 and food_diameter 30.0
-void test_density(double map_size, double food_diameter, std::string& file_path) {
-    const double water_area{ map_size * map_size / 15 };
-    const int pond_number{ static_cast<int>(water_area / 1e3) };
-
-	const double food_area{ food_diameter * food_diameter * 3.14159 };
-	const int food_number{ static_cast<int>((map_size * map_size - water_area)/ food_area) };
-	std::cout << "Available Food: "<< food_number << std::endl;
-
+void test_density(double map_size, std::string& file_path, bool with_thirst) {
+    constexpr int food_number{ 300 };
+    constexpr int pond_number{ 25 };
+    constexpr double water_area{ 1.6e4 };
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
-        10.0, 100.0, 100, food_number, water_area, pond_number };
+        10.0, 100.0, 100, food_number, water_area, pond_number ,true, with_thirst};
 
 
     //set up an output file to receive the simulation data

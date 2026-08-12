@@ -30,7 +30,7 @@ void wander(int bound);
 * population statistics 
 * to file_path at each tick
 */
-void test_density(double map_size, double food_diameter, std::string& file_path);
+void test_density(double map_size, std::string& file_path, bool with_thirst = true);
 
 //makes sure region intersection mechanics are working properly
 bool test_regions();

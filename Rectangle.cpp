@@ -58,21 +58,21 @@ void Rectangle::push_out(Creature* creature) const {
 	//based on which side is closer bounce the creature out from that direction
 	if (x_distance_out < y_distance_out && position(0) <= mid_x) {
 		position(0) = m_left;
-		creature->m_velocity(0) *= -1;
+		creature->m_body.m_velocity(0) *= -1;
 	}
 	else if (x_distance_out < y_distance_out) {
 		position(0) = m_right;
-		creature->m_velocity(0) *= -1;
+		creature->m_body.m_velocity(0) *= -1;
 	}
 	else if (position(1) <= mid_y) {
 		position(1) = m_lower;
-		creature->m_velocity(1) *= -1;
+		creature->m_body.m_velocity(1) *= -1;
 	}
 	else {
 		position(1) = m_upper;
-		creature->m_velocity(1) *= -1;
+		creature->m_body.m_velocity(1) *= -1;
 	}
-	creature->m_position = position;
+	creature->m_body.m_position = position;
 }
 
 //stretches a point in the interval (0,1) to be in the interval (lower, upper)

@@ -5,18 +5,18 @@
 #include <functional>
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	double starting_speed, double starting_eyesight, int population_size,
-	std::vector<Vector2d> foodLocations) :
+	Creature::Genotype& genes, int population_size,
+	std::vector<Vector2d>& foodLocations) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{starting_eyesight + 30.0}
+	m_foodManager{genes.eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(starting_speed > 0 && "Need positive starting speed");
-	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
+	assert(genes.eyesight > 0 && "Need positive starting eyesight");
 
 	//get the food manager set up
 	std::vector<FoodSource> food{};
@@ -25,22 +25,22 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	}
 	m_foodManager.extend(food);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, true);
+	add_random_population(population_size, genes, true);
 }
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	double starting_speed, double starting_eyesight, int population_size, int food_number, 
+	Creature::Genotype& genes, int population_size, int food_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ starting_eyesight + 30.0}
+	m_foodManager{ genes.eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(starting_speed > 0 && "Need positive starting speed");
-	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
+	assert(genes.eyesight > 0 && "Need positive starting eyesight");
 
 	//get the food manager set up
 	std::vector<FoodSource> food{};
@@ -49,45 +49,46 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	}
 	m_foodManager.extend(food);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+	add_random_population(population_size, genes, bothGenders);
 }
 
 //still in progress
 Simulation::Simulation(Rectangle map_base,
-	double starting_speed, double starting_eyesight, int population_size, int food_number,
-	std::vector<WaterSource> water_sources,
+	Creature::Genotype& genes,  int population_size, int food_number,
+	std::vector<WaterSource>& water_sources,
 	bool bothGenders) :
 	m_map_base{ map_base },
-	m_foodManager{ starting_eyesight + 30.0 },
-	m_waterManager{ water_sources, starting_eyesight + 30.0}
+	m_foodManager{ genes.eyesight + 30.0 },
+	m_waterManager{ water_sources, genes.eyesight + 30.0}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(starting_speed > 0 && "Need positive starting speed");
-	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
+	assert(genes.eyesight > 0 && "Need positive starting eyesight");
 
-	add_random_food(food_number, starting_eyesight);
+	add_random_food(food_number, genes.eyesight);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+	add_random_population(population_size, genes, bothGenders);
 
 }
 
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	double starting_speed, double starting_eyesight, int population_size, int food_number,
+	Creature::Genotype& genes, int population_size, int food_number,
 	double water_area, int pond_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ starting_eyesight + 30.0}
+	m_foodManager{ genes.eyesight + 30.0 }
 {
+	double starting_speed{ genes.body_genes.max_speed };
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
 	assert(starting_speed > 0 && "Need positive starting speed");
-	assert(starting_eyesight > 0 && "Need positive starting eyesight");
+	assert(genes.eyesight > 0 && "Need positive starting eyesight");
 	assert(m_map_base.get_area() > water_area && "No land for the creatures");
 	assert((water_area > pond_number * starting_speed * starting_speed * 4.5) && "Not enough water for the ponds");
 
@@ -126,9 +127,9 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	m_waterManager.extend(water);
 
 	//get the food manager set up
-	add_random_food(food_number, starting_eyesight);
+	add_random_food(food_number, genes.eyesight);
 
-	add_random_population(population_size, starting_speed, starting_eyesight, bothGenders);
+	add_random_population(population_size, genes, bothGenders);
 }
 
 void Simulation::add_random_food(int food_number, double starting_eyesight) {
@@ -147,12 +148,17 @@ void Simulation::add_random_food(int food_number, double starting_eyesight) {
 	m_foodManager.extend(food);
 
 }
-void Simulation::add_random_population(int population_size, double speed, double eyesight,
+void Simulation::add_random_population(int population_size, Creature::Genotype& genes,
 	bool bothGenders) {
+	Creature::Genotype male_genes{ genes };
+	male_genes.is_female = false;
+
 	for (int i{}; i < population_size; ++i) {
-		m_femalePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+		Vector2d position{ m_map_base.random_point() };
+		m_femalePopulation.insert(new Creature{ position, genes });
 		if (bothGenders) {
-			m_malePopulation.insert(new Creature{ m_map_base.random_point(), speed, eyesight });
+			position = m_map_base.random_point();
+			m_malePopulation.insert(new Creature{ position, male_genes });
 		}
 	}
 }
@@ -161,6 +167,7 @@ void Simulation::add_random_population(int population_size, double speed, double
 
 void Simulation::attempt_goal(Creature* gooblet) {
 	if (gooblet->goal_in_reach()) {
+		SurvivalResource* goal{ gooblet->get_goal() };
 		switch (gooblet->get_state()) {
 		case Creature::State::thirsty:
 			gooblet->drink();
@@ -171,22 +178,29 @@ void Simulation::attempt_goal(Creature* gooblet) {
 			break;
 		case Creature::State::horny:
 			//reproduce
-			Creature* mate{ m_malePopulation.find_closest_to(gooblet->get_position(), gooblet->get_eyesight()) };
-			assert(mate && "goal_in_reach should ensure gooblet-> get_goal() is an option");
-			gooblet->use();
-			
-			//currently adding to female
-			//but should in a random desicion to put in male or female
-			if (m_random() % 2 == 0) {
-				m_femalePopulation.insert(gooblet->reproduce(mate));
+			Creature* mate{};
+			const double checking_distance{ 1.0 };
+			if (gooblet->is_female()) {
+				mate = m_malePopulation.find_closest_to(goal->get_position(), checking_distance);
 			}
 			else {
-				m_malePopulation.insert(gooblet->reproduce(mate));
+				mate = m_femalePopulation.find_closest_to(goal->get_position(), checking_distance);
+			}
+			assert(mate && "goal_in_reach should ensure there is a mate in reach");
+			gooblet->use();
+			//currently adding to female
+			//but should in a random desicion to put in male or female
+			Creature* baby{ gooblet->reproduce(mate) };
+			if (baby->is_female()) {
+				m_femalePopulation.insert(baby);
+			}
+			else {
+				m_malePopulation.insert(baby);
 			}
 			
 			break;
 		}
-		gooblet->get_goal()->use();
+		goal->use();
 		gooblet->set_goal(nullptr);
 	}
 }
@@ -238,8 +252,15 @@ void Simulation::update() {
 	m_foodManager.update(max_eyesight);
 	m_waterManager.update(max_eyesight);
 	m_femalePopulation.update(max_eyesight);
-	m_malePopulation.update(max_eyesight);
+	//having the males try their goals now so that way the female's positions are still fresh
+	for (Creature* male : m_malePopulation) {
+		attempt_goal(male);
+	}
 
+	m_malePopulation.update(max_eyesight);
+	for (Creature* female : m_femalePopulation) {
+		attempt_goal(female);
+	}
 	//make sure populations are up to date
 	update_population(m_femalePopulation, true);
 	update_population(m_malePopulation, false);
@@ -256,11 +277,11 @@ void Simulation::update_population(ResourceSet<Creature>& population, bool isFem
 		animal->move();
 		m_map_base.pull_inside(animal);
 		WaterSource* closest_pond{ m_waterManager.find_closest_to(
-			animal->get_position(), animal->get_eyesight()) };
+			animal->get_position(), 1.0) };
 		if (closest_pond) {
 			closest_pond->push_out(animal);
 		}
-		attempt_goal(animal);
+
 	}
 
 }
@@ -300,7 +321,7 @@ double Simulation::average_eyesight() const {
 }
 
 double Simulation::average_acceleration() const {
-	return average_property(&Creature::get_acceleration);
+	return average_property(&Creature::get_max_acceleration);
 }
 
 double Simulation::average_property(double (Creature::* property)() const)  const {
@@ -315,7 +336,7 @@ double Simulation::average_property(double (Creature::* property)() const)  cons
 	return total / population_size();
 }
 
-double Simulation::total_reserves(Creature::Physical_Need need) const {
+double Simulation::total_reserves(Body::Need need) const {
 	double total{};
 	for (const Creature* female : m_femalePopulation) {
 		total += female->get_current_reserve(need);
@@ -327,9 +348,9 @@ double Simulation::total_reserves(Creature::Physical_Need need) const {
 }
 
 double Simulation::total_biomass() const {
-	return total_reserves(Creature::Physical_Need::calories);
+	return total_reserves(Body::Need::calories);
 }
 
 double Simulation::total_hydration() const {
-	return total_reserves(Creature::Physical_Need::water);
+	return total_reserves(Body::Need::water);
 }

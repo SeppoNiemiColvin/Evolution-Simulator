@@ -41,5 +41,5 @@ Vector2d HalfPlane::get_nearest(const Vector2d& position) const {
 void HalfPlane:: push_out(Creature* creature) const {
 	const Vector2d difference{ point_on_line() - creature->get_position() };
 	const double distance_out{ std::fmax(difference.dot(m_normal), 0) };
-	creature->m_position += ( distance_out * 1.1  * m_normal);
+	creature->m_body.m_position += ( distance_out * 1.1  * m_normal);
 }

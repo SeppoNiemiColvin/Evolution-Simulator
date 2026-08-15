@@ -6,9 +6,11 @@
 #include <vector>
 #include <algorithm>
 #include <Eigen/Dense>
+#include <cmath>
 #include "Rectangle.h"
 #include "ResourceFinder.h"
 #include "WaterSource.h"
+#include "Body.h"
 
 using Eigen::Vector2d;
 
@@ -18,11 +20,17 @@ using Eigen::Vector2d;
 * bound, but if the creature dies earlier we return the time when that happened.
 */
 int test_survivability(int bound, double food_distance, double water_density) {
-    const double water_area{ 2.5e5 * water_density };
-    const int pond_number{ static_cast<int>(water_area / 1000) };
-    const int food_number{ static_cast<int>((500 * 500 - water_area) * 4.0 /
+    Creature::Genotype genes{};
+    const double speed{ genes.body_genes.max_speed };
+    const double map_area{ speed * speed * 2500.0 };
+    const double water_area{map_area * water_density };
+    const int pond_number{ static_cast<int>(water_area / (7 * speed * speed))};
+    const int food_number{ static_cast<int>((map_area - water_area) * 4.0 /
         (food_distance * food_distance * 3.14159)) };
-	Simulation simulation{ 0.0, 500.0, 0.0, 500.0, 10.0, 100.0, 1,food_number , water_area, pond_number, false };
+    
+
+
+	Simulation simulation{ 0.0, speed * 50.0, 0.0, speed* 50.0, genes, 1,food_number , water_area, pond_number, false};
 	for (int time{}; time < bound; ++time) {
 		simulation.update();
 
@@ -35,7 +43,9 @@ int test_survivability(int bound, double food_distance, double water_density) {
 }
 
 void wander(int bound) {
-	Simulation simulation{ 0.0, 250.0, 0.0, 250.0, 10.0, 100.0, 1, 60,  2e4, 4,false };
+    Creature::Genotype genes{};
+
+	Simulation simulation{ 0.0, 2500.0, 0.0, 2500.0, genes, 1, 60,  2e4, 4,false };
     simulation.print_water();
     simulation.print_population();
 
@@ -52,17 +62,44 @@ void wander(int bound) {
 	}
 }
 
+void small_pop(int bound) {
+    Creature::Genotype genes{};
+    const double starting_speed{ genes.body_genes.max_speed };
+
+    Simulation simulation{ 0.0, starting_speed * 10, 0.0, starting_speed * 10, genes, 2, 5, 15 * pow(starting_speed,2), 3};
+    simulation.print_water();
+    simulation.print_population();
+
+    for (int time{}; time < bound; ++time) {
+        simulation.update();
+        std::cout << "Time: " << time << '\n';
+        std::cout << "Population: " << simulation.population_size() << '\n';
+        simulation.print_population();
+        simulation.print_water();
+        simulation.print_food();
+        std::cout << '\n' << '\n';
+        if (simulation.population_size() == 0) {
+            return;
+        }
+    }
+}
+
 //note that sim1 was map_size 2e3 and food_diameter 30.0
 void test_density(double map_size, double food_diameter, const std::string& file_path) {
-    const double water_area{ map_size * map_size / 15 };
-    const int pond_number{ static_cast<int>(water_area / 1e3) };
+    const double starting_speed{ 100.0 };
+    const double water_area{ map_size * map_size / 40 };
+    const int pond_number{ static_cast<int>(water_area / (5 * starting_speed * starting_speed) )};
 
 	const double food_area{ food_diameter * food_diameter * 3.141592 };
 	const int food_number{ static_cast<int>((map_size * map_size - water_area)/ food_area) };
-	std::cout << "Available Food: "<< food_number << std::endl;
+    std::cout << "Available Food: " << food_number << '\n';
+    std::cout << "Available Water: " << water_area << '\n';
+
+    Creature::Genotype genes{};
+    genes.body_genes.max_speed = starting_speed;
 
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
-        10.0, 100.0, 200, food_number, water_area, pond_number };
+        genes, 100, food_number, water_area, pond_number };
 
 
     //set up an output file to receive the simulation data
@@ -87,6 +124,9 @@ void test_density(double map_size, double food_diameter, const std::string& file
         simulation.update();
 
         if (time % 100 == 0) {
+            if (population == 0) {
+                break;
+            }
             std::cout << "Time:\t" << time << '\n';
             std::cout << "Population:\t" << population << '\n';
             std::cout << "Biomass: \t" << biomass << '\n';
@@ -239,11 +279,69 @@ bool test_resource_finder() {
     return answer;
 }
 
+bool test_creatures() {
+    Creature::Genotype genes{};
+    genes.body_genes.reserve_caps[0] = 200.0;
+    genes.body_genes.reserve_caps[1] = 200.0;
+    bool answer{ true };
+    Creature gooblet{ Vector2d{}, genes };
+
+    //do some checks that the gooblet initialized correctly
+    if (gooblet.is_available()) {
+        std::cout << "Creatures should start unavailable\n";
+        answer = false;
+    }
+
+    gooblet.eat();
+    gooblet.drink();
+    
+
+    if (gooblet.time_till_unavailable() != 61) {
+        std::cout << "Wrong time till unavailable\n";
+        answer = false;
+    }
+
+    if (gooblet.time_till_dead() != 200) {
+        std::cout << "Wrong time till death\n";
+        answer = false;
+    }
+    gooblet.update();
+    gooblet.update();
+    if (gooblet.time_till_unavailable() != 59) {
+        std::cout << "Wrong time till unavailable\n";
+        answer = false;
+    }
+
+    //makes sure the creature lets go of a mate that is no longer available
+    Creature mate{ Vector2d{10.0, 15.0}, genes };
+    mate.eat();
+    mate.drink();
+    gooblet.set_goal(&mate);
+
+    const int run_time{ mate.time_till_unavailable() };
+    for (int time{}; time < run_time; ++time) {
+        mate.update();
+        gooblet.goal_in_reach();
+    }
+
+    if (mate.is_available()) {
+        std::cout << "Mate should no longer be available\n";
+        answer = false;
+    }
+
+    if (gooblet.get_goal()) {
+        std::cout << "Gooblet should have released goal\n";
+        answer = false;
+    }
+    return answer;
+}
+
 /*
 * Designed to test the capabilitie of resource set and make sure it isn't
 * going too wonky
 */
 bool test_resource_set() {
+
     bool answer{ true };
     constexpr int size{ 5 };
     std::array<Vector2d, size> starting_positions{
@@ -251,9 +349,15 @@ bool test_resource_set() {
         Vector2d( -200, 100), Vector2d( -300,-400)
     };
 
+    //set up the genes to our predefined values
+    Creature::Genotype genes{};
+    genes.eyesight = 100.0;
+    genes.body_genes.max_speed = 10.0;
+    genes.body_genes.max_acceleration = 3.0;
+
     ResourceSet<Creature> test_population{};
     for (int i{}; i < size; ++i) {
-        test_population.insert(new Creature{ starting_positions[i], 10.0, 100.0 });
+        test_population.insert(new Creature{ starting_positions[i], genes});
     }
 
     //to make all the creatures available
@@ -262,6 +366,16 @@ bool test_resource_set() {
         creature->eat();
     }
     test_population.update(100.0);
+
+    //pull out how long we expect these creatures to be available and live
+    int time_till_available{};
+    int time_till_dead{};
+    for (auto creature : test_population) {
+        time_till_available = creature->time_till_unavailable();
+        time_till_dead = creature->time_till_dead();
+        break;
+    }
+
 
     //make sure the population finds the correct closest creature in a few cases
     Creature* mate = test_population.find_closest_to(Vector2d{}, 100.0);
@@ -305,12 +419,14 @@ bool test_resource_set() {
         }
     }
 
-    for (int i{}; i < 20; ++i) {
+    //make sure moving doesn't cause problems
+    for (int i{}; i < time_till_available -5; ++i) {
         for (auto& creature : test_population) {
             creature->move();
         }
         test_population.update(100.0);
     }
+    
     
     if (test_population.available_size() != 5) {
         answer = false;
@@ -318,9 +434,10 @@ bool test_resource_set() {
     }
 
     //make sure creatures get removed from availability
-    for (int i{}; i < 40; ++i) {
+    for (int i{}; i < 6; ++i) {
         test_population.update(100.0);
     }
+
     if (test_population.available_size() != 0) {
         answer = false;
         std::cout << "There should be no available creatures\n";
@@ -334,13 +451,13 @@ bool test_resource_set() {
         creature->drink();
         break;
     }
-    Creature* new_born = new Creature{ Vector2d(1.0, 30), 10.0, 100.0 };
+    Creature* new_born = new Creature{ Vector2d(1.0, 30), genes};
     new_born->drink();
     new_born->eat();
     test_population.insert(new_born);
     new_born = nullptr;
 
-    for (int i{}; i < 60; ++i) {
+    for (int i{}; i < time_till_dead -time_till_available +1; ++i) {
         test_population.update(100.0);
     }
     if (test_population.size() != 2) {

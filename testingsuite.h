@@ -24,6 +24,13 @@ int test_survivability(int bound, double food_distance, double water_density);
 void wander(int bound);
 
 /*
+* simulates a small population so you can get more fine tuned but
+* general feedback. Created to explore mysterious population crashes
+*/
+
+void small_pop(int bound);
+
+/*
 * Given an average distancce between food sources
 * and a variable indicating the size of the map,
 * runs the simulation for 1e4 ticks and prints
@@ -37,6 +44,10 @@ bool test_regions();
 
 //makes sure the resource finder is working well
 bool test_resource_finder();
+
+
+//make sure the creatures are working reasaonably
+bool test_creatures();
 
 //makes sure the resource set is working well
 bool test_resource_set();

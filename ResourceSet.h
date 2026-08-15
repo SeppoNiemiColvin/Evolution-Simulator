@@ -57,10 +57,15 @@ private:
 		double current_distance{ eyesight };
 
 		for (auto resource : m_available_resources[coord_to_check]) {
-			const double distance{ resource->get_distance(position) };
-			if (!closest || distance < current_distance) {
-				current_distance = distance;
-				closest = resource;
+			if (!(resource->is_available())) {
+				continue;
+			}
+			else {
+				const double distance{ resource->get_distance(position) };
+				if (!closest || distance < current_distance) {
+					current_distance = distance;
+					closest = resource;
+				}
 			}
 		}
 		return Report{ closest, current_distance };

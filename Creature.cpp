@@ -3,50 +3,40 @@
 #include <iostream>
 #include <cmath>
 #include <string_view>
+#include "ReproHelpers.h"
 
-Creature::Creature(Vector2d position, double speed, double eyesight) :
-	m_position{ position },
-	m_MAX_SPEED{ speed },
-	m_EYESIGHT{ eyesight }
+Creature::Creature(Vector2d position, Genotype genes) :
+	m_EYESIGHT{ genes.eyesight },
+	m_body{position, genes.body_genes},
+	m_is_female{genes.is_female}
 {
-	//m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
-	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
 }
 
-Creature::Creature(Vector2d position, double speed, double acceleration, double eyesight) :
-	m_position{ position },
-	m_MAX_SPEED{ speed },
-	m_MAX_ACCELERATION{acceleration},
-	m_EYESIGHT{ eyesight }
-{
-	//m_current_reserves[water] = m_RESERVE_CAPS[water] * m_THRESHOLDS[water];
-	m_current_reserves[calories] = m_RESERVE_CAPS[calories] * m_THRESHOLDS[calories];
-}
 
 void Creature::acc_toward(const Vector2d& target) {
-	m_acceleration = target - m_position - m_velocity;
+	m_acceleration = target - get_position() - get_velocity();
 	//adjust for reach, we will attempt to make it somewhere within range
 	m_acceleration *= std::fmax((m_acceleration.norm() - .7 * m_REACH) / m_acceleration.norm(),0);
-	m_acceleration -= .4 * m_velocity;
+	m_acceleration -= .4 * get_velocity();
 }
 
 void Creature::acc_neutral() {
-	const double speed{ m_velocity.norm() };
+	const double speed{ m_body.get_speed()};
 
 	//we are moving slowly and should choose a direction to move in
-	if (speed < .1 * m_MAX_ACCELERATION) {
+	if (speed < .1 * get_max_acceleration()) {
 		static std::mt19937_64 m_generator;
 		static std::uniform_real_distribution distribution(0.0, 2 * 3.14159);
 		const double angle{ distribution(m_generator) };
 		const Vector2d direction(cos(angle), sin(angle));
-		m_acceleration = m_MAX_ACCELERATION * direction;
+		m_acceleration = get_max_acceleration() * direction;
 		return;
 	}
 
 	//we can move faster in this direction
-	if (speed < m_MAX_SPEED) {
-		const double acc_size{ std::fmin(m_MAX_SPEED - speed, m_MAX_ACCELERATION) };
-		m_acceleration = acc_size * m_velocity / speed;
+	if (speed < get_max_speed()) {
+		const double acc_size{ std::fmin(get_max_speed() - speed, get_max_acceleration())};
+		m_acceleration = acc_size * get_velocity() / speed;
 	}
 }
 
@@ -55,27 +45,18 @@ void Creature::acc_neutral() {
 void Creature::move() {
 	//figure out desired acceleration
 	if (m_goal) {
-		acc_toward(m_goal->get_nearest(m_position));
+		acc_toward(m_goal->get_nearest(get_position()));
 	}
 	else {
 		acc_neutral();
 	}
 	// move in that direction
-	if (m_acceleration.norm() > m_MAX_ACCELERATION) {
-		m_acceleration.normalize();
-		m_acceleration *= m_MAX_ACCELERATION;
-	}
-	m_velocity += m_acceleration;
-	if (m_velocity.norm() > m_MAX_SPEED) {
-		m_velocity.normalize();
-		m_velocity *= m_MAX_SPEED;
-	}
-	m_position += m_velocity;
+	m_body.exert(m_acceleration);
 }
 
-bool Creature::above_threshold(Physical_Need need) {
-	assert(need != num_needs);
-	return m_current_reserves[need] >= m_THRESHOLDS[need] * m_RESERVE_CAPS[need];
+bool Creature::above_threshold(Body::Need need) {
+	assert(need != Body::Need::num_needs);
+	return m_body.felt_need(need) >= m_THRESHOLDS[need];
 }
 
 void Creature::update() {
@@ -85,26 +66,28 @@ void Creature::update() {
 	}
 	m_acceleration = Vector2d{};
 	//time passes and the creature's metabolism runs
-	m_current_reserves[calories] -= 1.0;
-	m_current_reserves[water] -= 1.0;
+	m_body.metabolize();
 	
+	m_age += 1;
+	m_time_since_mated += 1;
 	//check if state needs to switch and if so adjust the goal
 	// state will become dead if any reserve is depleted
 	
-	for (int i{}; i < num_needs; ++i) {
-		if (m_current_reserves[i] <= 0.0) {
-			m_state = dead;
-			return;
-		}
-	}
-
-	if (m_state < num_needs && !above_threshold(static_cast<Physical_Need>(m_state))) {
+	if (m_body.is_dead()) {
+		m_state = dead;
 		return;
 	}
 
-	for (int need{}; need < num_needs; ++need) {
-		if (!above_threshold(static_cast<Physical_Need>(need))) {
-			if (m_state != need) {
+
+	//if the current state matches that states requirement we keep that state
+	if (m_state < Body::Need::num_needs && !above_threshold(static_cast<Body::Need>(m_state))) {
+		return;
+	}
+
+	//else go through and check if the state needs to be updated
+	for (int need{}; need < Body::Need::num_needs; ++need) {
+		if (!above_threshold(static_cast<Body::Need>(need))) {
+			if (m_state != static_cast<State>(need)) {
 				m_state = static_cast<State>(need);
 				m_goal = nullptr;
 			}
@@ -118,25 +101,14 @@ void Creature::update() {
 	}
 }
 
-void Creature::eat() {
-	m_current_reserves[calories] = m_RESERVE_CAPS[calories];
-}
 
-void Creature::drink() {
-	m_current_reserves[water] = m_RESERVE_CAPS[water];
-}
 
-Creature* Creature::reproduce(Creature* other) const{
+Creature* Creature::reproduce(Creature* other){
 	Creature& mate{ *other };
 
-	static std::mt19937_64 generator;
-	static std::normal_distribution distribution(0.0, 0.5);
-
-	const double baby_speed{ (m_MAX_SPEED + mate.m_MAX_SPEED) / 2 + distribution(generator) };
-	double acceleration{ (m_MAX_ACCELERATION + mate.m_MAX_ACCELERATION) / 2 + .5 * distribution(generator) };
-	const double eyesight = (m_EYESIGHT + mate.m_EYESIGHT) / 2 + 5*distribution(generator);
-
-	return new Creature{ m_position, baby_speed, acceleration, eyesight };
+	const double eyesight{ combine_scaled(m_EYESIGHT, mate.m_EYESIGHT) };
+	Genotype baby_genes{ m_body.reproduce(mate.m_body), eyesight , coinFlip()};
+	return new Creature{ get_position(), baby_genes};
 }
 
 //function to make printing positions nicer
@@ -148,14 +120,14 @@ std::string string_position(const Vector2d& position) {
 }
 
 void Creature::print() const {
-	std::cout << "State:\t\t" << m_state << '\n';
-	std::cout << "Speed:\t\t" << m_MAX_SPEED << '\n';
-	std::cout << "Eyesight:\t" << m_EYESIGHT << '\n';
-	std::cout << "Position:\t" << string_position(m_position) << '\n';
-	std::cout << "Veclocity:\t" << string_position(m_velocity) << '\n';
-	std::cout << "Goal:\t\t" << (m_goal ? string_position(m_goal->get_position()) : "Null") << '\n';
-	std::cout << "Energy:\t\t" << m_current_reserves[calories] << '/' << m_RESERVE_CAPS[calories] << '\n';
-	std::cout << "Water:\t\t" << m_current_reserves[water] << '/' << m_RESERVE_CAPS[water] << '\n';
+	std::cout << "State:\t\t"	<< m_state << '\n';
+	std::cout << "Speed:\t\t"	<< get_max_speed() << '\n';
+	std::cout << "Eyesight:\t"	<< m_EYESIGHT << '\n';
+	std::cout << "Position:\t"	<< string_position(get_position()) << '\n';
+	std::cout << "Veclocity:\t" << string_position(get_velocity()) << '\n';
+	std::cout << "Goal:\t\t"	<< (m_goal ? string_position(m_goal->get_position()) : "Null") << '\n';
+	std::cout << "Energy:\t\t"	<< m_body.print_reserve(Body::Need::calories) << '\n';
+	std::cout << "Water:\t\t"	<< m_body.print_reserve(Body::Need::water) << '\n';
 }
 
 
@@ -164,22 +136,26 @@ void Creature::print() const {
 
 bool Creature::goal_in_reach() {
 	if (!m_goal) { return false; }
-	//creature needs to slow down to mate, eat, drink, ect
-	if (m_velocity.norm() > 2.0) {
-		return false;
-	}
 
+	
+
+	//note this needs to be checked first so that way the creature releases
+	//unavailable goals (especially important so that it doesn't pursue a dead mate)
 	if (!(m_goal->is_available())) {
 		//if the goal is no longer available drop it as a goal
 		m_goal = nullptr;
 		return false;
 	}
+	//creature needs to slow down to mate, eat, drink, ect
+	if (m_body.get_speed() > 2.0) {
+		return false; 
+	}
 
-	return (m_goal->get_distance(m_position)) < m_REACH;
+	return (m_goal->get_distance(get_position())) < m_REACH;
 }
 
 void Creature::set_goal(SurvivalResource* new_goal) {
-	if (new_goal && new_goal->get_distance(m_position) < m_EYESIGHT) { m_goal = new_goal; }
+	if (new_goal && new_goal->get_distance(get_position()) < m_EYESIGHT) { m_goal = new_goal; }
 }
 
 constexpr std::string_view getStateName(Creature::State state) {
@@ -194,4 +170,12 @@ constexpr std::string_view getStateName(Creature::State state) {
 
 std::ostream& operator<<(std::ostream& out, Creature::State state) {
 	return out << getStateName(state);
+}
+
+int Creature::time_till_unavailable() const {
+	return m_body.time_till_unavailable(m_THRESHOLDS);
+}
+
+int Creature::time_till_dead() const {
+	return m_body.time_till_dead();
 }

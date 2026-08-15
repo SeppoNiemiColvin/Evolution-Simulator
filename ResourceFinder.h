@@ -48,12 +48,21 @@ private:
 		T* closest{};
 		double current_distance{eyesight};
 
+		std::vector<T*> clean_up{};
+
 		for (auto resource : m_available[coord_to_check]) {
+			if (!(resource ->is_available())) {
+				clean_up.push_back(resource);
+				continue;
+			}
 			const double distance{ resource->get_distance(position) };
 			if (!closest || distance < current_distance) {
 				current_distance = distance;
 				closest = resource;
 			}
+		}
+		for (auto resource : clean_up) {
+			m_available[coord_to_check].erase(resource);
 		}
 		return Report{ closest, current_distance };
 	}

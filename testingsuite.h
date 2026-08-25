@@ -21,7 +21,7 @@ int test_survivability(int bound, double food_distance, double water_density);
 * creates a single creature that wanders around a map,
 *printing out its location as it goes. Useful to test
 */
-void wander(int bound);
+void wander(const std::string& file_name, int bound, bool verbose = false);
 
 /*
 * simulates a small population so you can get more fine tuned but
@@ -51,4 +51,11 @@ bool test_creatures();
 
 //makes sure the resource set is working well
 bool test_resource_set();
+
+//some functions to test that the movement analyzers are working as intended
+bool test_desire_analyzer(bool verbose = false);
+
+bool test_friction_analyzer(bool verbose = false);
+
+bool test_force_manager(bool verbose = false);
 #endif

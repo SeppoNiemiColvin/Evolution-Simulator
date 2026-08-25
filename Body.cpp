@@ -1,9 +1,11 @@
-#include "Body.h"
+ #include "Body.h"
 #include "ReproHelpers.h"
 #include <cmath>
 #include <vector>
 #include <iostream>
-
+#include <string>
+#include <string_view>
+#include <utility>
 
 
 Body::Body(Vector2d position, Genotype genes) :
@@ -117,9 +119,9 @@ int Body::time_till_dead() const {
 Body::Genotype Body::get_genes() const {
 	return Genotype{
 		m_RESERVE_CAPS,
-		m_IGNORED_NEEDS,
 		m_MAX_SPEED,
-		m_MAX_ACCELERATION
+		m_MAX_ACCELERATION,
+		m_IGNORED_NEEDS,
 	};
 }
 
@@ -147,4 +149,29 @@ Body::NeedList create_metabolic_base(Body::Genotype& genes) {
 		}
 	}
 	return metabolic_base;
+}
+
+void Body::Genotype::test_validity() const {
+	constexpr std::string_view positive_error{ "Variable needs to be positive" };
+
+	using ErrorMessage = std::pair<Gene, std::string_view>;
+
+	//check the need lists for problems
+	for (int need{}; need < num_needs; ++need) {
+		if (reserve_caps[need] <= 0.0) {
+			throw ErrorMessage{ Gene::reserve_cap, positive_error };
+		}
+
+		if (starting_amounts[need] <= 0.0) {
+			throw ErrorMessage{ Gene::starting_amount, positive_error };
+		}
+	}
+
+	if (max_speed <= 0.0) {
+		throw ErrorMessage{ Gene::max_speed, positive_error };
+	}
+
+	if (max_acceleration <= 0.0) {
+		throw ErrorMessage{ Gene::max_acceleration, positive_error };
+	}
 }

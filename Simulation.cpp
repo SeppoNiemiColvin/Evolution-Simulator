@@ -4,8 +4,9 @@
 #include <iostream>
 #include <functional>
 
+
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	Creature::Genotype& genes, int population_size,
+	const Creature::Genotype& genes, int population_size,
 	std::vector<Vector2d>& foodLocations) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
 	m_foodManager{genes.eyesight + 30.0}
@@ -15,8 +16,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
-	assert(genes.eyesight > 0 && "Need positive starting eyesight");
+	genes.test_validity();
 
 	//get the food manager set up
 	std::vector<FoodSource> food{};
@@ -29,7 +29,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 }
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	Creature::Genotype& genes, int population_size, int food_number,
+	const Creature::Genotype& genes, int population_size, int food_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
 	m_foodManager{ genes.eyesight + 30.0}
@@ -39,8 +39,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
-	assert(genes.eyesight > 0 && "Need positive starting eyesight");
+	genes.test_validity();
 
 	//get the food manager set up
 	std::vector<FoodSource> food{};
@@ -54,7 +53,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 
 //still in progress
 Simulation::Simulation(Rectangle map_base,
-	Creature::Genotype& genes,  int population_size, int food_number,
+	const Creature::Genotype& genes,  int population_size, int food_number,
 	std::vector<WaterSource>& water_sources,
 	bool bothGenders) :
 	m_map_base{ map_base },
@@ -64,8 +63,7 @@ Simulation::Simulation(Rectangle map_base,
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(genes.body_genes.max_speed > 0 && "Need positive starting speed");
-	assert(genes.eyesight > 0 && "Need positive starting eyesight");
+	genes.test_validity();
 
 	add_random_food(food_number, genes.eyesight);
 
@@ -75,7 +73,7 @@ Simulation::Simulation(Rectangle map_base,
 
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-	Creature::Genotype& genes, int population_size, int food_number,
+	const Creature::Genotype& genes, int population_size, int food_number,
 	double water_area, int pond_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
@@ -87,8 +85,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	assert(left_bound < right_bound && "Check Horizontal Bounds");
 	assert(lower_bound < right_bound && "Check Vertical Bounds");
 	assert(population_size > 0 && "Need Positive Population size");
-	assert(starting_speed > 0 && "Need positive starting speed");
-	assert(genes.eyesight > 0 && "Need positive starting eyesight");
+	genes.test_validity();
 	assert(m_map_base.get_area() > water_area && "No land for the creatures");
 	assert((water_area > pond_number * starting_speed * starting_speed * 4.5) && "Not enough water for the ponds");
 
@@ -148,7 +145,7 @@ void Simulation::add_random_food(int food_number, double starting_eyesight) {
 	m_foodManager.extend(food);
 
 }
-void Simulation::add_random_population(int population_size, Creature::Genotype& genes,
+void Simulation::add_random_population(int population_size, const Creature::Genotype& genes,
 	bool bothGenders) {
 	Creature::Genotype male_genes{ genes };
 	male_genes.is_female = false;
@@ -353,4 +350,80 @@ double Simulation::total_biomass() const {
 
 double Simulation::total_hydration() const {
 	return total_reserves(Body::Need::water);
+}
+
+void Simulation::run_and_record(const std::string& file_name, int bound) {
+	std::ofstream output_file{ file_name };
+	if (!output_file) {
+		std::cerr << "Unable to open output file\n";
+		return;
+	}
+
+	//header for the csv
+	output_file << "Population" << ",Biomass" << ",Speed" << ",Acceleration" << ",Eyesight" << '\n';
+
+	//run the simulationa nd record results. print occasionally to keep updated
+	for (int time{}; time < bound; ++time) {
+		const int population{ population_size() };
+		const double speed{ average_speed() };
+		const double acceleration{ average_acceleration() };
+		const double eyesight{ average_eyesight() };
+		const double biomass{ total_biomass() };
+		output_file << population << ',' << biomass << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
+
+		update();
+
+		if (time % 100 == 0) {
+			if (population == 0) {
+				break;
+			}
+			std::cout << "Time:\t" << time << '\n';
+			std::cout << "Population:\t" << population << '\n';
+			std::cout << "Biomass: \t" << biomass << '\n';
+			std::cout << "Avg. Speed:\t" << speed << '\n';
+			std::cout << "Avg. Acc:\t" << acceleration << '\n';
+			std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
+			std::cout << std::endl;
+
+		}
+	}
+}
+
+void Simulation::record_population_positions(std::ofstream& output_file, int time) const {
+	for (auto female : m_femalePopulation) {
+		Vector2d data{ female->get_position() };
+		output_file << data(0) << ',' << data(1) << ',';
+		data = female->get_velocity();
+		output_file << data(0) << ',' << data(1) << ',';
+		output_file << time << '\n';
+	}
+	for (auto male : m_malePopulation) {
+		Vector2d data{ male->get_position() };
+		output_file << data(0) << ',' << data(1) << ',';
+		data = male->get_velocity();
+		output_file << data(0) << ',' << data(1) << ',';
+		output_file << time << '\n';
+	}
+}
+
+void Simulation::record_food(std::ofstream& output_file) const {
+	output_file << "x,y\n";
+	
+	auto end{ m_foodManager.cend() };
+	for (auto start{ m_foodManager.cbegin() }; start != end; ++start) {
+		const Vector2d position{ start->get_position() };
+		output_file << position(0) << ',' << position(1) << '\n';
+	}
+}
+
+void Simulation::record_water(std::ofstream& output_file) const {
+	output_file << "left,right,lower,upper\n";
+
+	auto end{ m_waterManager.cend() };
+	for (auto start{ m_waterManager.cbegin() }; start != end; ++start) {
+		output_file << start->get_left() << ',';
+		output_file << start->get_right() << ',';
+		output_file << start->get_lower() << ',';
+		output_file << start->get_upper() << '\n';
+	}
 }

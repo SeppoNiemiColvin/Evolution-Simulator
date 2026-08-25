@@ -20,7 +20,7 @@ double combine_flat(const double parent1, const double parent2, const double sca
 	static std::mt19937_64 generator;
 	static std::normal_distribution distribution(0.0, 1.0);
 
-	return average + pow(2.8, scale) * distribution(generator);
+	return average + scale * distribution(generator);
 }
 
 bool coinFlip() {

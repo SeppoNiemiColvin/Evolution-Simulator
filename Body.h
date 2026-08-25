@@ -34,13 +34,28 @@ public:
 
 	using NeedSet = std::unordered_set<Need>;
 	using NeedList = std::array<double, num_needs>;
+
+	//these mark different locations in the genotype to more easily signal where a problem occured
+	//when  testing validity. only variables that can go wrong are listed
+	enum class Gene {
+		reserve_cap,
+		max_speed,
+		max_acceleration,
+		starting_amount
+	};
+
 	//bundles the needed information to make a creature together for easier passing to construction
 	struct Genotype {
 		NeedList reserve_caps{ 200.0, 200.0 };
-		NeedSet ignored_needs{};
 		double max_speed{ 100.0 };
 		double max_acceleration{ max_speed / 3 };
-		NeedList starting_amounts{ reserve_caps[water],.5 * reserve_caps[calories] };
+		NeedSet ignored_needs{};
+		NeedList starting_amounts{ reserve_caps[water], 0.5 * reserve_caps[calories] };
+
+
+		//makes sure this genotype produces something viable.
+		// Raises an exception if not
+		void test_validity() const;
 	};
 private:
 	//reserve caps determine how much of that need the creature can store.
@@ -115,4 +130,5 @@ public:
 };
 
 Body::NeedList create_metabolic_base(Body::Genotype& genes);
+
 #endif

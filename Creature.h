@@ -40,11 +40,19 @@ public:
 		num_states
 	};
 
+	//enum where I can put variables from the genotype that can go wrong
+	//to make from easier debugging
+	enum class Gene {
+		eyesight
+	};
 	struct Genotype
 	{
 		Body::Genotype body_genes{};
 		double eyesight{ body_genes.max_speed * 3 };
 		bool is_female{ true };
+
+		//raises an exception if there is a problem with this genotype
+		void test_validity() const;
 	};
 private:
 	const Species m_SPECIES{}; 
@@ -70,6 +78,8 @@ private:
 	SurvivalResource* m_goal{};
 	State m_state{ State::hungry };
 
+	//These were put in to help debug population crashes to help see what the issue was
+	//may eventually inforporate death from old age
 	int m_age{};
 	int m_time_since_mated{ -300 };
 	 
@@ -86,7 +96,7 @@ private:
 	bool above_threshold(Body::Need need);
 
 public:
-	Creature(Vector2d position, Genotype genes);
+	Creature(const Vector2d& position, const Genotype& genes);
 	void print() const;
 
 	Creature* reproduce(Creature* other);

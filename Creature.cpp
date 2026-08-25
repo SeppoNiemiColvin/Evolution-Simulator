@@ -3,9 +3,10 @@
 #include <iostream>
 #include <cmath>
 #include <string_view>
+#include <utility>
 #include "ReproHelpers.h"
 
-Creature::Creature(Vector2d position, Genotype genes) :
+Creature::Creature(const Vector2d& position, const Genotype& genes) :
 	m_EYESIGHT{ genes.eyesight },
 	m_body{position, genes.body_genes},
 	m_is_female{genes.is_female}
@@ -17,7 +18,7 @@ void Creature::acc_toward(const Vector2d& target) {
 	m_acceleration = target - get_position() - get_velocity();
 	//adjust for reach, we will attempt to make it somewhere within range
 	m_acceleration *= std::fmax((m_acceleration.norm() - .7 * m_REACH) / m_acceleration.norm(),0);
-	m_acceleration -= .4 * get_velocity();
+	m_acceleration -= 1.2 * get_velocity();
 }
 
 void Creature::acc_neutral() {
@@ -45,13 +46,16 @@ void Creature::acc_neutral() {
 void Creature::move() {
 	//figure out desired acceleration
 	if (m_goal) {
-		acc_toward(m_goal->get_nearest(get_position()));
+		for (int i{}; i < 4; ++i) {
+			acc_toward(m_goal->get_nearest(get_position()));
+			m_body.exert(m_acceleration, 0.25);
+		}
+
 	}
 	else {
 		acc_neutral();
+		m_body.exert(m_acceleration);
 	}
-	// move in that direction
-	m_body.exert(m_acceleration);
 }
 
 bool Creature::above_threshold(Body::Need need) {
@@ -137,8 +141,6 @@ void Creature::print() const {
 bool Creature::goal_in_reach() {
 	if (!m_goal) { return false; }
 
-	
-
 	//note this needs to be checked first so that way the creature releases
 	//unavailable goals (especially important so that it doesn't pursue a dead mate)
 	if (!(m_goal->is_available())) {
@@ -147,7 +149,7 @@ bool Creature::goal_in_reach() {
 		return false;
 	}
 	//creature needs to slow down to mate, eat, drink, ect
-	if (m_body.get_speed() > 2.0) {
+	if (m_body.get_speed() > 1.0) {
 		return false; 
 	}
 
@@ -178,4 +180,15 @@ int Creature::time_till_unavailable() const {
 
 int Creature::time_till_dead() const {
 	return m_body.time_till_dead();
+}
+
+void Creature::Genotype::test_validity() const {
+	constexpr std::string_view positivity_error{ "Variable should be strictly positive" };
+	using ErrorMessage = std::pair<Gene, std::string_view>;
+
+	body_genes.test_validity();
+
+	if (eyesight <= 0.0) {
+		throw ErrorMessage{ Gene::eyesight, positivity_error };
+	}
 }

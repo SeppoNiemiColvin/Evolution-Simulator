@@ -11,6 +11,13 @@
 #include "ResourceFinder.h"
 #include "WaterSource.h"
 #include "Body.h"
+#include "DesireAnalyzer.h"
+#include "FrictionAnalyzer.h"
+
+#include "EcologyFlags.h"
+#include "ForceManager.h"
+#include <iomanip>
+#include <string_view>
 
 using Eigen::Vector2d;
 
@@ -42,24 +49,46 @@ int test_survivability(int bound, double food_distance, double water_density) {
 	return bound;
 }
 
-void wander(int bound) {
-    Creature::Genotype genes{};
+void wander(const std::string& file_name, int bound, bool verbose) {
+    int time_stretch{ 5 };
+    Body::Genotype body_genes{ {100.0 * time_stretch, 100.0 * time_stretch},
+        100.0/time_stretch, 50.0/(time_stretch * time_stretch)};
+    Creature::Genotype genes{body_genes, 300.0};
 
-	Simulation simulation{ 0.0, 2500.0, 0.0, 2500.0, genes, 1, 60,  2e4, 4,false };
-    simulation.print_water();
-    simulation.print_population();
+    std::ofstream position_file{ file_name + "_position.csv"};
+    std::ofstream food_file{ file_name + "_food.csv" };
+    std::ofstream water_file{ file_name + "_water.csv" };
+    if (!position_file || !food_file || !water_file) {
+        std::cerr << "Unable to open output file(s)\n";
+        return;
+    }
 
-	for (int time{}; time < bound; ++time) {
-		simulation.update();
-		std::cout << "Time: " << time << '\n';
-        simulation.print_population();
-        simulation.print_water();
+    constexpr int pond_number{ 3 };
 
-		std::cout << '\n' << '\n';
-		if (simulation.population_size() == 0) {
-			return;
-		}
+    double water_area{ fmax(body_genes.max_speed * body_genes.max_speed * pond_number * 6, 5e4 )};
+	Simulation simulation{ 0.0, 1e3, 0.0, 1e3, 
+        genes, 1, 25,  water_area, pond_number,false };
+    simulation.record_food(food_file);
+    simulation.record_water(water_file);
+
+    position_file << "Position_x,Position_y,Velocity_x, Velocity_y,Time\n";
+	for (int time{}; time < bound * time_stretch; ++time) { 
+        if (verbose || time % 500 == 0) {
+            std::cout << std::endl << "Time: " << time << '\n';
+        }
+        if (verbose) {
+            simulation.print_population();
+            simulation.print_water();
+        }
+        simulation.record_population_positions(position_file, time);
+
+        simulation.update();
+        if (simulation.population_size() == 0) {
+            break;
+        }
 	}
+    simulation.print_food();
+    simulation.print_water();
 }
 
 void small_pop(int bound) {
@@ -101,42 +130,7 @@ void test_density(double map_size, double food_diameter, const std::string& file
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
         genes, 100, food_number, water_area, pond_number };
 
-
-    //set up an output file to receive the simulation data
-    std::ofstream output_file{ file_path };
-    if (!output_file) {
-        std::cerr << "Unable to open output file\n";
-        return;
-    }
-
-    //header for the csv
-    output_file << "Population" << ",Biomass" << ",Speed" << ",Acceleration" << ",Eyesight" << '\n';
-
-    //run the simulationa nd record results. print occasionally to keep updated
-    for (int time{}; time < 1e4; ++time) {
-        const int population{ simulation.population_size() };
-        const double speed{ simulation.average_speed() };
-        const double acceleration{ simulation.average_acceleration() };
-        const double eyesight{ simulation.average_eyesight() };
-        const double biomass{ simulation.total_biomass() };
-        output_file << population << ',' << biomass << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
-
-        simulation.update();
-
-        if (time % 100 == 0) {
-            if (population == 0) {
-                break;
-            }
-            std::cout << "Time:\t" << time << '\n';
-            std::cout << "Population:\t" << population << '\n';
-            std::cout << "Biomass: \t" << biomass << '\n';
-            std::cout << "Avg. Speed:\t" << speed << '\n';
-            std::cout << "Avg. Acc:\t" << acceleration << '\n';
-            std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
-            std::cout << std::endl;
-
-        }
-    }
+    simulation.run_and_record(file_path, 10000);
 }
 
 bool test_regions() {
@@ -471,4 +465,239 @@ bool test_resource_set() {
 
     delete correct;
     return answer;
+}
+
+/*
+* Here is where a bunch of tests of the analyzers start
+*/
+
+struct AnalyzerTest {
+    std::string_view resource_name{};
+    std::string_view test_name{};
+    MovementAnalyzer& analyzer;
+    SurvivalResource* resource;
+    bool verbose{ true };
+    double normalized_force{};
+    bool increasing_stage1{true};
+    double sign_x{ 1.0 };
+    double sign_y{ 1.0 };
+};
+
+bool test_data_line(const std::array<double, 4>& data, const AnalyzerTest& expectations, double previous, bool increasing) {
+    bool answer{ true };
+    const bool incorrect_direction{ increasing ? data[1] <= previous : data[1] > previous };
+    if (incorrect_direction) {
+        answer = false;
+    }
+
+    const double EPSILON{ 1e-10 };
+    if (abs( data[2]) > EPSILON ) {
+        answer = answer && (data[2] * expectations.sign_x > 0);
+    }
+    if (abs(data[3]) > EPSILON) {
+        answer = answer && (data[3] * expectations.sign_y > 0);
+    }
+    return answer;
+}
+//runs a bunch of test based off this pair and prints the results in nice fashion
+//used in the functions testing the analyzers
+bool analyzer_test(const AnalyzerTest& expectations) {
+    constexpr int first_test{ 6 };
+    constexpr int second_test{ 7 };
+    constexpr int test_num{ first_test + second_test +1 };
+    constexpr int data_types{ 4 };
+
+    std::array<std::array<double, data_types>, test_num> data{};
+
+    Vector2d initial_position{ (expectations.resource->get_position())};
+    initial_position.normalize();
+    initial_position *= 5.0;
+
+    MovementAnalyzer::Observation observation{ expectations.resource, initial_position };
+    double scale{};
+    double previous{ -1.0 };
+    //collect a bunch of data at different scales
+    for (int i{}; i < first_test; ++i) {
+        data[i][0] = scale;
+        observation.update_displacement(initial_position * scale);
+        Vector2d acceleration{ expectations.analyzer.calculate_acceleration(observation) };
+        data[i][1] = acceleration.norm();
+        data[i][2] = acceleration(0);
+        data[i][3] = acceleration(1);
+
+        if (i > 0 && !test_data_line(data[i], expectations, previous, expectations.increasing_stage1)) {
+            std::cout << "Data Expectations in first stage wrong for " << expectations.resource_name << " , "
+                << expectations.test_name << '\n';
+            return false;
+        }
+        scale += 0.2;
+        previous = data[i][1]; 
+    }
+
+    if (abs(data[first_test - 1][1] - expectations.normalized_force) > 1e-6) {
+        std::cout << "Wrong Force Value for" << expectations.resource_name << " , " << expectations.test_name << '\n';
+        return false;
+    }
+
+    for (int j{}; j < second_test; ++j) {
+        const int i{ j + first_test };
+        data[i][0] = scale;
+        observation.update_displacement(initial_position * scale);
+        Vector2d acceleration{ expectations.analyzer.calculate_acceleration(observation) };
+        data[i][1] = acceleration.norm();
+        data[i][2] = acceleration(0);
+        data[i][3] = acceleration(1);
+
+        if (!test_data_line(data[i], expectations, previous, false)) {
+            std::cout << "Data Expectations in second stage wrong for " << expectations.resource_name << " , "
+                << expectations.test_name << '\n';
+            return false;
+        }
+        scale += 1.0;
+    }
+    scale = 4e2;
+    constexpr int j{ test_num - 1 };
+    data[j][0] = scale;
+    observation.displacement = initial_position * scale;
+    Vector2d acceleration{ expectations.analyzer.calculate_acceleration(observation) };
+    data[j][1] = acceleration.norm();
+    data[j][2] = acceleration(0);
+    data[j][3] = acceleration(1);
+
+    //now we print the data
+    if (expectations.verbose) {
+        std::cout << expectations.resource_name << ',' << expectations.test_name << '\n';
+        std::cout << std::setprecision(4);
+        for (int i{}; i < test_num; ++i) {
+            for (int j{}; j < data_types; ++j) {
+                std::cout << data[i][j] << "\t\t";
+            }
+            std::cout << '\n';
+        }
+    }
+    return true;
+}
+
+bool test_desire_analyzer(bool verbose) {
+    bool answer{ true };
+    Vector2d velocity{ 10.0, 30.0 };
+    MovementAnalyzer::Status status{
+        {1.0, 0.5}, velocity
+    };
+
+    //the desire analyzer
+    MovementAnalyzer::LinearGenotype genes{
+        MovementAnalyzer::AnalyzerType::desire,
+        MovementAnalyzer::NeedVector{ 0.0, -100.0 },
+        80.0,
+        -0.3
+    };
+    DesireAnalyzer pull{&genes };
+    pull.consolidate(status);
+
+    std::vector<FoodSource> bushes{ {Vector2d{40.0, 60.0}, Vector2d{20.0, -40.0}} };
+
+    double force_size{ 45.0 };
+    std::string_view test_name{ "Starting Hunger" };
+    AnalyzerTest first_bush_test{ "First Bush", test_name,
+        pull, &bushes[0], verbose, force_size
+    };
+
+    AnalyzerTest second_bush_test{ "Second Bush", test_name,
+        pull, &bushes[1], verbose, force_size
+    };
+    second_bush_test.sign_y = -1.0;
+    answer &= analyzer_test(first_bush_test);
+    answer &= analyzer_test(second_bush_test);
+
+    status.felt_needs[1] = 0.1;
+    pull.consolidate(status);
+    test_name = "Intense Hunger";
+    first_bush_test.test_name = test_name;
+    second_bush_test.test_name = test_name;
+    double force{ 70 * 1.5 };
+    first_bush_test.normalized_force = force;
+    second_bush_test.normalized_force = force;
+    answer &= analyzer_test(first_bush_test);
+    answer &= analyzer_test(second_bush_test);
+
+    status.felt_needs[0] = 0.3;
+    pull.consolidate(status);
+
+    status.felt_needs[1] = 1.0;
+    pull.consolidate(status);
+    first_bush_test.test_name = "Full";
+    first_bush_test.sign_x = -1.0;
+    first_bush_test.sign_y = -1.0;
+    first_bush_test.normalized_force = 20 * 1.5;
+    answer &= analyzer_test(first_bush_test);
+    return answer;
+}
+
+bool test_friction_analyzer(bool verbose) {
+    //set up creatures and resources to interact
+    Vector2d velocity{ 6.0, 8.0 };
+    MovementAnalyzer::Status status{
+        {1.0, 0.5}, velocity
+    };
+
+    FoodSource bush{ Vector2d{30.0, 50.0} };
+
+    //make the analyzer
+    MovementAnalyzer::LinearGenotype genes{
+    MovementAnalyzer::AnalyzerType::friction,
+    MovementAnalyzer::NeedVector{ 0.0, -100.0 },
+    80.0,
+    -0.7
+    };
+    FrictionAnalyzer slow{ &genes };
+    slow.consolidate(status);
+
+    AnalyzerTest friction_test{ "Bush","Friction Test First", slow, &bush,verbose , false};
+    friction_test.normalized_force = 30.0 * velocity.norm();
+    friction_test.increasing_stage1 = false;
+    friction_test.sign_x = -1;
+    friction_test.sign_y = -1;
+
+    bool answer{ analyzer_test(friction_test) };
+    velocity(0) *= -1;
+    slow.consolidate(status);
+    friction_test.sign_x = 1;
+    friction_test.test_name = "Friction Test Second";
+    answer &= analyzer_test(friction_test);
+
+    velocity(0) *= -1;
+    status.felt_needs(1) = 1.0;
+    friction_test.sign_y = 1.0;
+    friction_test.test_name = "Friction Test Third";
+    friction_test.normalized_force = 20 * velocity.norm();
+    slow.consolidate(status);
+    answer &= analyzer_test(friction_test);
+    return answer;
+}
+
+bool test_force_manager(bool verbose) {
+    using MetaEcology = ForceManager::Genotype::MetaEcology;
+    ForceManager::Genotype genes{};
+
+    genes.build_resource_flag(Ecology::bush, MetaEcology::food);
+    genes.build_resource_flag(Ecology::pond, MetaEcology::water);
+    genes.build_resource_flag(Ecology::gooblet_mate, MetaEcology::mate);
+    ForceManager manager{ genes };
+
+    Vector2d velocity{ 6.0, 8.0 };
+    MovementAnalyzer::Status status{
+        {1.0, 0.5}, velocity
+    };
+
+    FoodSource bush{ Vector2d{30.0, 50.0} };
+    MovementAnalyzer::Observation bush_sight{
+        &bush,
+        bush.get_position(),
+    };
+
+    ForceManager::View surroundings{ {bush_sight}, {}, {} };
+
+    manager.response(status, surroundings);
+    return true;
 }

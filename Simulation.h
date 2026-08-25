@@ -8,6 +8,7 @@
 #include "FoodSource.h"
 #include "WaterSource.h"
 #include<Eigen/Dense>
+#include <fstream>
 
 using Eigen::Vector2d;
 
@@ -29,7 +30,7 @@ private:
 
 	//adds population_size male and female individuals with these speed and eyesight
 	//mainly used as a helper function during set up
-	void add_random_population(int population_size, Creature::Genotype& genes, bool bothGenders);
+	void add_random_population(int population_size, const Creature::Genotype& genes, bool bothGenders);
 	//adds food_number FoodSources randomly placed
 	void add_random_food(int food_number, double starting_eyesight = 100);
 
@@ -45,18 +46,18 @@ private:
 	double total_reserves(Body::Need need) const;
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-		Creature::Genotype& genes, int initial_population,
+		const Creature::Genotype& genes, int initial_population,
 		std::vector<Vector2d>& foodLocations);
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-		Creature::Genotype& genes,  int population_size, int food_number,
+		const Creature::Genotype& genes,  int population_size, int food_number,
 		bool bothGenders = true);
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
-		Creature::Genotype& genes,  int population_size, int food_number,
+		const Creature::Genotype& genes,  int population_size, int food_number,
 		double water_area, int pond_number,
 		bool bothGenders = true);
 
 	Simulation(Rectangle map_base,
-		Creature::Genotype& genes,  int population_size, int food_number,
+		const Creature::Genotype& genes,  int population_size, int food_number,
 		std::vector<WaterSource>& water_sources,
 		bool bothGenders = true);
 	//moves the simulation forward one tick
@@ -78,6 +79,14 @@ public:
 	//calculates how many calories are there between all the creatures
 	double total_biomass() const;
 	double total_hydration() const;
+
+	//runs the simulation forward for bound intervals and records the average population properties over that time
+	void run_and_record(const std::string& file_name, int bound);
+
+	//records the position of all creatures
+	void record_population_positions(std::ofstream& output_file, int time) const;
+	void record_food(std::ofstream& output_file) const;
+	void record_water(std::ofstream& output_file) const;
 };
 
 #endif

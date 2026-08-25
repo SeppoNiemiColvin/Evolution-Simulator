@@ -16,10 +16,10 @@ int main()
     assert(test_resource_finder() && "Resource Finder Failed");
     assert(test_creatures() && "Creature Failed");
     assert(test_resource_set() && "Resource Set Failed");
+    assert(test_desire_analyzer() && "Desire Analyzer Failed");
+    assert(test_friction_analyzer() && "Frictoin Analyzer Failed");
 
-
-    std::string file_name{ "test.csv" };
-    test_density(5e3, 1e2, file_name);
+    test_force_manager(true);
 }
 
 

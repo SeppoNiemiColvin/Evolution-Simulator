@@ -40,7 +40,10 @@ public:
     Vector2d get_position() const { return m_pond.random_point(); }
     Vector2d get_nearest(Vector2d position) const { return m_pond.get_nearest(position); }
     int get_id() const { return m_id; }
-
+    double get_left() const { return m_pond.get_left(); }
+    double get_right() const { return m_pond.get_right(); }
+    double get_lower() const { return m_pond.get_lower(); }
+    double get_upper() const { return m_pond.get_upper(); }
     //these may shift if I have the water source shrink and grow
     bool is_available() const { return true; }
     void update() { ; }

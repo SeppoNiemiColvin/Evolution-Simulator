@@ -27,6 +27,7 @@ public:
 
     virtual void consolidate(const Status& creature_status) {
         m_consolidated_velocity = creature_status.velocity * (creature_status.felt_needs.dot(m_NEED_COEFFICIENTS) + m_NEED_OFFSET);
+
     }
 
     Vector2d calculate_acceleration(const Observation& observation) const {

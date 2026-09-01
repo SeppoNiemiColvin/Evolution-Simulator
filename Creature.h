@@ -62,7 +62,7 @@ private:
 	// these thresholds affect how the creature transitions between states
 	// providing the fraction of the reserve cap that must be met for matting can happen
 	//they are static to provide a species wide constraint if the caps evolve.
-	static inline std::array<double,Body::Need::num_needs> m_THRESHOLDS{ 0.6, 0.7 };
+	static inline std::array<double,Body::Need::num_needs> m_THRESHOLDS{ 0.6, 0.6 };
 
 	const double m_EYESIGHT{};
 	//movement/action property. Not currently evolvable

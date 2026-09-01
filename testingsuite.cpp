@@ -49,8 +49,15 @@ int test_survivability(int bound, double food_distance, double water_density) {
 	return bound;
 }
 
+/*
+* Runs a single creature wandering around an environment for 5 * bound timesteps 
+* (it adjust speed and acceleration so that these are each 1/5 of a normal time  step)
+* Note the function handles file extensions so no need to include a .csv in flie_name
+* if verbose is false (which is the default) therew ill still be some printing but it will
+* only be at the end and every 500 timesteps instead of every timestep
+*/
 void wander(const std::string& file_name, int bound, bool verbose) {
-    int time_stretch{ 5 };
+    constexpr int time_stretch{ 5 };
     Body::Genotype body_genes{ {100.0 * time_stretch, 100.0 * time_stretch},
         100.0/time_stretch, 50.0/(time_stretch * time_stretch)};
     Creature::Genotype genes{body_genes, 300.0};
@@ -290,7 +297,7 @@ bool test_creatures() {
     gooblet.drink();
     
 
-    if (gooblet.time_till_unavailable() != 61) {
+    if (gooblet.time_till_unavailable() != 81) {
         std::cout << "Wrong time till unavailable\n";
         answer = false;
     }
@@ -301,7 +308,7 @@ bool test_creatures() {
     }
     gooblet.update();
     gooblet.update();
-    if (gooblet.time_till_unavailable() != 59) {
+    if (gooblet.time_till_unavailable() != 79) {
         std::cout << "Wrong time till unavailable\n";
         answer = false;
     }
@@ -685,19 +692,47 @@ bool test_force_manager(bool verbose) {
     genes.build_resource_flag(Ecology::gooblet_mate, MetaEcology::mate);
     ForceManager manager{ genes };
 
-    Vector2d velocity{ 6.0, 8.0 };
+    Vector2d velocity{0, 100.0 };
     MovementAnalyzer::Status status{
-        {1.0, 0.5}, velocity
+        {0.8, 0.4}, velocity
     };
 
-    FoodSource bush{ Vector2d{30.0, 50.0} };
+    std::vector<FoodSource> bushes{ { Vector2d{50.0, 0.0} }, {Vector2d{-50.0, 0.0 }} };
     MovementAnalyzer::Observation bush_sight{
-        &bush,
-        bush.get_position(),
+        &(bushes[0]),
+        bushes[0].get_position(),
     };
 
     ForceManager::View surroundings{ {bush_sight}, {}, {} };
+    Vector2d response{};
+    response = manager.response(status, surroundings);
+    if (verbose) {
+        std::cout << response << "\n\n";
+    }
 
-    manager.response(status, surroundings);
+    //test a different distance away
+    surroundings[0][0].from_perspective(Vector2d{ -50.0,0.0 });
+    response = manager.response(status, surroundings);
+    if (verbose) {
+        std::cout << response << "\n\n";;
+    }
+
+    surroundings[0][0].from_perspective(Vector2d{ -100.0,0.0 });
+    response = manager.response(status, surroundings);
+    if (verbose) {
+        std::cout << response << "\n\n";;
+    }
+    
+    surroundings[0][0].from_perspective(Vector2d{});
+    surroundings[0].push_back(MovementAnalyzer::Observation{ &bushes[1], bushes[1].get_position() });
+    response = manager.response(status, surroundings);
+    if (verbose) {
+        std::cout << response << "\n\n";;
+    }
+
+    std::vector<WaterSource>ponds{WaterSource{ 50,100,-50,50 }};
+    surroundings[1].push_back(MovementAnalyzer::Observation{&ponds[0] , Vector2d{50,0}});
+
+
     return true;
 }

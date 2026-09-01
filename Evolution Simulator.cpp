@@ -19,7 +19,10 @@ int main()
     assert(test_desire_analyzer() && "Desire Analyzer Failed");
     assert(test_friction_analyzer() && "Frictoin Analyzer Failed");
 
-    test_force_manager(true);
+    std::string prefix{ "GoalBaesedWandering" };
+    for (int i{}; i < 5; ++i) {
+        wander(prefix + std::to_string(i), 300);
+    }
 }
 
 

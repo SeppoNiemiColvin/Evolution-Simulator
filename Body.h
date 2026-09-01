@@ -48,7 +48,7 @@ public:
 	struct Genotype {
 		NeedList reserve_caps{ 200.0, 200.0 };
 		double max_speed{ 100.0 };
-		double max_acceleration{ max_speed / 3 };
+		double max_acceleration{ max_speed / 2 };
 		NeedSet ignored_needs{};
 		NeedList starting_amounts{ reserve_caps[water], 0.5 * reserve_caps[calories] };
 

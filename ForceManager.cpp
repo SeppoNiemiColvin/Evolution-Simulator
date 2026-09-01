@@ -43,7 +43,7 @@ Vector2d ForceManager::response(const MovementAnalyzer::Status& creature_status,
 	assert(surroundings.size() == m_flags.size() && "View not compatible with creature");
 	consolidate(creature_status);
 
-	Vector2d acceleration{};
+ 	Vector2d acceleration{};
 	for (int ecology_type{}; ecology_type < surroundings.size(); ++ecology_type) {
 		//if the view has a flag this creature doesn't use something probably needs debugging
 		//but we can also just choose to skip it
@@ -91,27 +91,29 @@ void ForceManager::Genotype::build_resource_flag(Ecology flag, MetaEcology type)
 
 	//set the coefficients based on the meta-ecology
 	MovementAnalyzer::NeedVector coefficients{};
-	double offset{ 80.0 };
+	double offset{ 100.0 };
 	switch(type) {
 	case MetaEcology::food:
-		coefficients(Body::Need::calories) = -100.0;
+		coefficients(Body::Need::calories) = -120.0;
 		break;
 	case MetaEcology::water:
-		coefficients(Body::Need::water) = -100.0;
+		coefficients(Body::Need::water) = -120.0;
 		break;
 	case MetaEcology::mate:
+		constexpr double gen_force{ 140.0 };
 		for (int need{}; need< Body::Need::num_needs; ++need) {
-			coefficients(need) = 50.0;
+			coefficients(need) = gen_force/2;
 		}
-		offset = -60.0;
+		offset = -.6 * gen_force;
 	}
 	
 	//add the corresponding pieces
 	genes[flag].push_back(new LinearGenotype{ MovementAnalyzer::AnalyzerType::desire,
 		coefficients, offset, -0.3
 		});
+	constexpr double friction_adjustment{ 0.15 };
 	genes[flag].push_back(new LinearGenotype{ MovementAnalyzer::AnalyzerType::friction,
-		coefficients, offset, -0.7
+		friction_adjustment * coefficients, friction_adjustment * offset, -0.9
 		});
 	//see if we need to add this to the flag list
 	for (auto stored_flag : flag_list) {

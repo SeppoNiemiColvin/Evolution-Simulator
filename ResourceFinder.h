@@ -10,6 +10,7 @@
 #include "Prehash.h"
 
 using Eigen::Vector2d;
+class SurvivalResource;
 
 //This Manages SurvivalResources of fixed length.
 //T should be a SurvivalResource
@@ -172,12 +173,35 @@ public:
 			}
 			for (const auto resource : m_available[coord]) {
 				if (resource->get_distance(position) <= eyesight && !seen.contains(resource)) {
-					answer.push_back(resource);
+					answer.push_back( (resource));
 					seen.insert(resource);
 
 				}
 			}
 			
+		}
+
+		return answer;
+	}
+
+	std::vector<SurvivalResource*> within_eyesight_generic(const Vector2d& position, double eyesight) {
+		std::unordered_set<T*> seen{};
+		std::vector<SurvivalResource*> answer{};
+		std::unordered_set<CoordPrehash> coords_to_check{
+			relevant_coords(position,eyesight)
+		};
+		for (auto coord : coords_to_check) {
+			if (!m_available.contains(coord) || m_available[coord].empty()) {
+				continue;
+			}
+			for (const auto resource : m_available[coord]) {
+				if (resource->get_distance(position) <= eyesight && !seen.contains(resource)) {
+					answer.push_back(static_cast<SurvivalResource*>(resource));
+					seen.insert(resource);
+
+				}
+			}
+
 		}
 
 		return answer;

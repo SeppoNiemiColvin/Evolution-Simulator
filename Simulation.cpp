@@ -3,7 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <functional>
-
+#include "ReproHelpers.h"
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	const Creature::Genotype& genes, int population_size,
@@ -147,37 +147,38 @@ void Simulation::add_random_food(int food_number, double starting_eyesight) {
 }
 void Simulation::add_random_population(int population_size, const Creature::Genotype& genes,
 	bool bothGenders) {
-	Creature::Genotype male_genes{ genes };
-	male_genes.is_female = false;
-
 	for (int i{}; i < population_size; ++i) {
 		Vector2d position{ m_map_base.random_point() };
 		m_femalePopulation.insert(new Creature{ position, genes });
-		if (bothGenders) {
-			position = m_map_base.random_point();
-			m_malePopulation.insert(new Creature{ position, male_genes });
-		}
+	}
+	//handle males now
+	if (!bothGenders) {
+		return;
+	}
+	for (int i{}; i < population_size; ++i) {
+		Vector2d position{ m_map_base.random_point() };
+		m_malePopulation.insert(new Creature{position, genes});
 	}
 }
 
 
 
-void Simulation::attempt_goal(Creature* gooblet) {
+void Simulation::attempt_goal(Creature* gooblet, bool isFemale) {
 	if (gooblet->goal_in_reach()) {
-		SurvivalResource* goal{ gooblet->get_goal() };
-		switch (gooblet->get_state()) {
-		case Creature::State::thirsty:
+		Creature::Goal* goal{ gooblet->get_goal() };
+		switch (goal->type) {
+		case MetaEcology::water:
 			gooblet->drink();
 			break;
-		case Creature::State::hungry:
+		case MetaEcology::food:
 			//eat
 			gooblet->eat();
 			break;
-		case Creature::State::horny:
+		case MetaEcology::mate:
 			//reproduce
 			Creature* mate{};
 			const double checking_distance{ 1.0 };
-			if (gooblet->is_female()) {
+			if (isFemale) {
 				mate = m_malePopulation.find_closest_to(goal->get_position(), checking_distance);
 			}
 			else {
@@ -188,7 +189,7 @@ void Simulation::attempt_goal(Creature* gooblet) {
 			//currently adding to female
 			//but should in a random desicion to put in male or female
 			Creature* baby{ gooblet->reproduce(mate) };
-			if (baby->is_female()) {
+			if (coinFlip()) {
 				m_femalePopulation.insert(baby);
 			}
 			else {
@@ -197,40 +198,10 @@ void Simulation::attempt_goal(Creature* gooblet) {
 			
 			break;
 		}
-		goal->use();
-		gooblet->set_goal(nullptr);
+		goal-> desire.object->use();
 	}
 }
 
-void Simulation::assign_goal(Creature* gooblet, bool isFemale) {
-	//only assign a goal if it is seaking one
-	if (!(gooblet->is_seeking())) {
-		return;
-	}
-
-	const Vector2d position{ gooblet->get_position() };
-	const double eyesight{ gooblet->get_eyesight() };
-	
-	//setting up to make the water block eyesight (
-	//std::vector<WaterSource*> obstacles{ m_waterManager.within_eyesight(position, eyesight) };
-	//std::vector<SurvivalResource*> goals{};
-	switch (gooblet->get_state()) {
-	case Creature::State::thirsty:
-		gooblet->set_goal(m_waterManager.find_closest_to(position, eyesight));
-		break;
-	case Creature::State::hungry:
-		gooblet->set_goal(m_foodManager.find_closest_to(position, eyesight));
-		break;
-	case Creature::State::horny:
-		if (isFemale) {
-			gooblet->set_goal(m_malePopulation.find_closest_to(position, eyesight));
-		}
-		else {
-			gooblet->set_goal(m_femalePopulation.find_closest_to(position, eyesight));
-		}
-		break;
-	}
-}
 
 void Simulation::update() {
 	//make sure food is up to date
@@ -251,12 +222,12 @@ void Simulation::update() {
 	m_femalePopulation.update(max_eyesight);
 	//having the males try their goals now so that way the female's positions are still fresh
 	for (Creature* male : m_malePopulation) {
-		attempt_goal(male);
+		attempt_goal(male, false);
 	}
 
 	m_malePopulation.update(max_eyesight);
 	for (Creature* female : m_femalePopulation) {
-		attempt_goal(female);
+		attempt_goal(female, true);
 	}
 	//make sure populations are up to date
 	update_population(m_femalePopulation, true);
@@ -264,14 +235,33 @@ void Simulation::update() {
 
 }
 
-void Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
-	//make sure everyone has a goal
-	for (Creature* animal : population) {
-		assign_goal(animal, isFemale);
+Simulation::Surroundings Simulation::look_around(Creature* animal) {
+	//ask animal what types of things
+	std::vector<Ecology> flags{ animal->get_flags() };
+	Surroundings things_around{};
+	for (auto flag : flags) {
+		//pull nearby things of that desire
+		std::vector<SurvivalResource*> nearby_resources;
+		switch (flag) {
+		case Ecology::bush:
+			nearby_resources = m_foodManager.within_eyesight_generic(animal->get_position(), animal->get_eyesight());
+			break;
+		case Ecology::pond:
+			nearby_resources = m_waterManager.within_eyesight_generic(animal->get_position(), animal->get_eyesight());
+		}
+		if (!nearby_resources.empty()) {
+			things_around[flag] = nearby_resources;
+		}
 	}
+	return things_around;
+}
 
+void Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
 	for (Creature* animal : population) {
-		animal->move();
+		Surroundings things_around{ look_around(animal) };
+		animal->move(things_around);
+
+		//implement obstacles
 		m_map_base.pull_inside(animal);
 		WaterSource* closest_pond{ m_waterManager.find_closest_to(
 			animal->get_position(), 1.0) };

@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Evolutio.777e9f15\\x64\\Debug\\Simulation.obj",
+            "outputs": [
+                "Evolutio.777e9f15\\x64\\Debug\\Simulation.h.obj.dt.module.json",
+                "Evolutio.777e9f15\\x64\\Debug\\Simulation.h.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -11,6 +11,8 @@
 #include "Rectangle.h"
 #include <utility>
 #include "Body.h"
+#include "ForceManager.h"
+#include <unordered_map>
 
 using Eigen::Vector2d;
 
@@ -18,6 +20,10 @@ using Eigen::Vector2d;
 class Creature : public SurvivalResource
 {
 public:
+	using Surroundings = std::unordered_map<Ecology, std::vector<SurvivalResource*>>;
+	using NeedList = Body::NeedList;
+	using Observation = MovementAnalyzer::Observation;
+
 	//if I end up having things like predators and the like
 	//tracking species will help me build them from the same base
 	//While having something to mark that certain creatures shouldn't
@@ -49,24 +55,35 @@ public:
 	{
 		Body::Genotype body_genes{};
 		double eyesight{ body_genes.max_speed * 3 };
-		bool is_female{ true };
-
+		ForceManager::Genotype brain_genes{};
 		//raises an exception if there is a problem with this genotype
 		void test_validity() const;
 	};
+
+	//bundles an observation with its type so that way we have enough information to interpret the goal
+	struct Goal {
+		Observation desire;
+		MetaEcology type;
+
+		double get_distance() const { return desire.distance; }
+		void from_perspective(const Vector2d& position) { desire.from_perspective(position); }
+		bool is_available() const { return desire.object->is_available(); }
+		Vector2d get_position() const { return desire.object->get_position(); }
+	};
+
 private:
 	const Species m_SPECIES{}; 
-	bool m_is_female{ true };
 	Body m_body;
 
 	// these thresholds affect how the creature transitions between states
 	// providing the fraction of the reserve cap that must be met for matting can happen
 	//they are static to provide a species wide constraint if the caps evolve.
-	static inline std::array<double,Body::Need::num_needs> m_THRESHOLDS{ 0.6, 0.6 };
+	static inline NeedList s_MATING_THRESHOLDS{ 0.6, 0.6 };
+	static inline NeedList s_SEEKING_THRESHOLDS{ 0.8, 0.8 };
 
 	const double m_EYESIGHT{};
 	//movement/action property. Not currently evolvable
-	static inline double m_REACH{ 5.0 };
+	static inline double s_REACH{ 5.0 };
 
 	//m_acceleration will reset to 0 each update, but has its own place here
 	//to help multiple processes build it up to the currect value each tick
@@ -75,8 +92,10 @@ private:
 	//these track the gooblets current deires.
 	//the goal is a pointer toward the survival resource the gooblet is currently after
 	//helps prevent us from having to rellook this up constantly.
-	SurvivalResource* m_goal{};
+	Goal* m_goal{};
 	State m_state{ State::hungry };
+	ForceManager m_brain;
+
 
 	//These were put in to help debug population crashes to help see what the issue was
 	//may eventually inforporate death from old age
@@ -89,14 +108,25 @@ private:
 	void acc_neutral();
 	//provides an acceleration based around a particular target destination
 	void acc_toward(const Vector2d& target);
-
+	void acc_sight(const ForceManager::View& surroundings);
 
 
 	//helper function to test if we need to change state
 	bool above_threshold(Body::Need need);
 
+	//these tasks help deligate keeping the view information in order
+	//before sending it to the force manager
+	void manage_view(ForceManager::View& surroundings) const ;
+	//this makes the veiew and in the process updates the goal
+	ForceManager::View make_view(const Surroundings& surroundings);
+	//updates goal based on a survival resource with an ecology flag
+	void update_goal(Ecology flag, const Observation& potential_goal);
+	//decides whether to repalce a given goal
+	bool should_replace_goal(Body::Need need, double distance) const;
+
 public:
 	Creature(const Vector2d& position, const Genotype& genes);
+	Creature(const Vector2d& position, const Genotype& genes, const ForceManager& brain);
 	void print() const;
 
 	Creature* reproduce(Creature* other);
@@ -104,8 +134,8 @@ public:
 	//basic functions that move the creature through based on chosen actions
 	void update();
 
-	void move();
-
+	void move(const Surroundings& surroundings = { {} });
+ 
 	//pass these onto the body
 	void eat() { m_body.eat(); }
 	void drink() { m_body.drink(); }
@@ -113,7 +143,14 @@ public:
 
 	//getters describing the creature
 	bool is_dead() const { return m_state == State::dead; }
-	virtual bool is_available() const { return m_state == State::horny;  }
+	virtual bool is_available() const {
+		for (int need{}; need < Body::num_needs; ++need) {
+			if (s_MATING_THRESHOLDS[need] > m_body.felt_need(static_cast<Body::Need>(need))) {
+				return false;
+			}
+		}
+		return true;
+	}
 	Vector2d get_position() const { return m_body.get_position(); }
 	Vector2d get_velocity() const { return m_body.get_velocity(); }
 	double get_max_speed() const { return m_body.get_max_speed(); }
@@ -123,13 +160,21 @@ public:
 	State get_state() const { return m_state; }
 	Species get_species() const { return m_SPECIES; }
 	double get_eyesight() const { return m_EYESIGHT; }
-	bool is_female() const { return m_is_female; }
-	double get_reach() const { return m_REACH; }
+	double get_reach() const { return s_REACH; }
+
 	//goal tracking/control
-	void set_goal(SurvivalResource* new_goal);
+	std::vector<Ecology> get_flags() const {
+		return m_brain.get_flags();
+	}
+
 	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
 	bool goal_in_reach();
-	SurvivalResource* get_goal() { return m_goal; }
+	Goal* get_goal() { return m_goal; }
+	void set_goal(SurvivalResource* goal, MetaEcology type) {
+		delete m_goal;
+		m_goal = new Goal{ Observation{goal}, type };
+		m_goal->from_perspective(get_position());
+	}
 
 	//as a Survival resource use means mate
 	//This requires a lot of energy so hunger get set to the threshold

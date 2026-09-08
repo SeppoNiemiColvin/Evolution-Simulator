@@ -151,6 +151,16 @@ Body::NeedList create_metabolic_base(Body::Genotype& genes) {
 	return metabolic_base;
 }
 
+
+
+Body::Status Body::make_status() const {
+	NeedVector needs;
+	for (int need{}; need < num_needs; ++need) {
+		needs[need] = felt_need(static_cast<Need>(need));
+	}
+
+	return Status{ needs, m_velocity };
+}
 void Body::Genotype::test_validity() const {
 	constexpr std::string_view positive_error{ "Variable needs to be positive" };
 

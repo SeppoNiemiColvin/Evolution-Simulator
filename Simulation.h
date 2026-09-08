@@ -16,7 +16,10 @@ struct Body::Genotype;
 
 class Simulation
 {
+public:
+	using Surroundings = std::unordered_map<Ecology, std::vector<SurvivalResource*>>;
 private:
+
 	const Rectangle m_map_base{};
 
 	ResourceFinder<FoodSource> m_foodManager{130.0};
@@ -35,15 +38,16 @@ private:
 	void add_random_food(int food_number, double starting_eyesight = 100);
 
 	//the creature in question will attempt its goal if possible
-	void attempt_goal(Creature* gooblet);
+	void attempt_goal(Creature* gooblet, bool isFemale);
 
-	//makes sure the gooblet has a goal (if possible)
-	void assign_goal(Creature* gooblet, bool isFemale);
 
 	//updates a population of cretures
 	void update_population(ResourceSet<Creature>& population, bool isFemale);
 
 	double total_reserves(Body::Need need) const;
+
+	//compiles the features within eyesight of animal 
+	Surroundings look_around(Creature* animal);
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		const Creature::Genotype& genes, int initial_population,

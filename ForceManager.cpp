@@ -11,7 +11,8 @@ ForceManager::ForceManager(const Flags& flags) :
 
 ForceManager::ForceManager(const Genotype& genes) :
 	m_flags{ genes.flag_list},
-	m_brain(genes.flag_list.size())
+	m_brain(genes.flag_list.size()),
+	m_relationships{genes.relationships}
 {
 	for (int i{}; i < genes.flag_list.size(); ++i) {
 		for (const auto& sub_genes : genes.genes.at(m_flags[i])) {
@@ -20,20 +21,21 @@ ForceManager::ForceManager(const Genotype& genes) :
 	}
 }
 
-ForceManager ForceManager::reproduce( const ForceManager& mate) const {
+ForceManager::Genotype ForceManager::reproduce( const ForceManager& mate) const {
 	//check compatability
 	assert(get_flags() == mate.get_flags());
 
-	ForceManager baby{m_flags};
+	Genotype baby{m_flags, m_relationships};
 
 	//build up the baby from its parts asserting that they are compatable as they go
 	for (int flag_pos{}; flag_pos < m_flags.size(); ++flag_pos) {
 		const std::vector<MovementAnalyzer*>& mate_analyzers{ mate.m_brain[flag_pos]};
 		const int length{static_cast<int>( m_brain[flag_pos].size())};
+		Ecology flag{ m_flags[flag_pos] };
 		assert(length == mate_analyzers.size());
 		for (int analyzer_pos{}; analyzer_pos < length; ++analyzer_pos) {
 			assert(m_brain[flag_pos][analyzer_pos]->get_type() == mate_analyzers[analyzer_pos]->get_type());
-			baby.m_brain[flag_pos].push_back(m_brain[flag_pos][analyzer_pos]->reproduce(mate_analyzers[analyzer_pos]));
+			baby.genes[flag].push_back(m_brain[flag_pos][analyzer_pos]->reproduce(mate_analyzers[analyzer_pos]));
 		}
 	}
 	return baby;
@@ -59,7 +61,7 @@ Vector2d ForceManager::response(const MovementAnalyzer::Status& creature_status,
 }
 
 ForceManager::Genotype ForceManager::get_genotype() const {
-	Genotype genes{ m_flags };
+	Genotype genes{ m_flags, m_relationships};
 	for (int eco_flag{}; eco_flag < m_brain.size(); ++eco_flag) {
 		std::vector<MovementAnalyzer::MetaGenotype*> sub_genes{};
 		const std::vector<MovementAnalyzer*>& eco_analyzers{ m_brain[eco_flag] };
@@ -86,6 +88,8 @@ Vector2d ForceManager::run_observation(int ecology_pos, const Observation& obser
 	return observation_impact;
 }
 
+
+
 void ForceManager::Genotype::build_resource_flag(Ecology flag, MetaEcology type) {
 	using LinearGenotype = MovementAnalyzer::LinearGenotype;
 
@@ -111,9 +115,9 @@ void ForceManager::Genotype::build_resource_flag(Ecology flag, MetaEcology type)
 	genes[flag].push_back(new LinearGenotype{ MovementAnalyzer::AnalyzerType::desire,
 		coefficients, offset, -0.3
 		});
-	constexpr double friction_adjustment{ 0.15 };
+	constexpr double friction_adjustment{ 0.6 };
 	genes[flag].push_back(new LinearGenotype{ MovementAnalyzer::AnalyzerType::friction,
-		friction_adjustment * coefficients, friction_adjustment * offset, -0.9
+		friction_adjustment * coefficients, friction_adjustment * offset, -0.5
 		});
 	//see if we need to add this to the flag list
 	for (auto stored_flag : flag_list) {
@@ -122,12 +126,35 @@ void ForceManager::Genotype::build_resource_flag(Ecology flag, MetaEcology type)
 		}
 	}
 	flag_list.push_back(flag);
+
+	relationships[flag] = type;
 }
 
 ForceManager::Genotype::~Genotype() {
 	for (auto& ecotype : genes) {
-		for (auto analyzer_genes : ecotype.second) {
-			delete analyzer_genes;
+		for (int i{}; i < ecotype.second.size(); ++i) {
+			MovementAnalyzer::MetaGenotype* pointer =  ecotype.second[i];
+			delete pointer;
 		}
 	}
 }
+
+MetaEcology ForceManager::get_relationship(Ecology flag) const {
+	if (m_relationships.contains(flag)) {
+		return m_relationships.at(flag);
+	}
+
+	//default flag that should signal that this resource isn't relevant
+	return MetaEcology::num_metaflags;
+}
+
+namespace DefaultGenes {
+	ForceManager::Genotype gooblet() {
+		ForceManager::Genotype genes{};
+		genes.build_resource_flag(Ecology::bush, MetaEcology::food);
+		genes.build_resource_flag(Ecology::pond, MetaEcology::water);
+		genes.build_resource_flag(Ecology::gooblet_mate, MetaEcology::mate);
+		return genes;
+	}
+}
+

@@ -9,15 +9,16 @@
 Creature::Creature(const Vector2d& position, const Genotype& genes) :
 	m_EYESIGHT{ genes.eyesight },
 	m_body{position, genes.body_genes},
-	m_is_female{genes.is_female}
+	m_brain{genes.brain_genes}
 {
 }
+
 
 
 void Creature::acc_toward(const Vector2d& target) {
 	m_acceleration = target - get_position() - get_velocity();
 	//adjust for reach, we will attempt to make it somewhere within range
-	m_acceleration *= std::fmax((m_acceleration.norm() - .7 * m_REACH) / m_acceleration.norm(),0);
+	m_acceleration *= std::fmax((m_acceleration.norm() - .7 * s_REACH) / m_acceleration.norm(),0);
 	m_acceleration -= 1.2 * get_velocity();
 }
 
@@ -42,17 +43,116 @@ void Creature::acc_neutral() {
 }
 
 
-
-void Creature::move() {
-	//figure out desired acceleration
-	if (m_goal) {
-		for (int i{}; i < 4; ++i) {
-			acc_toward(m_goal->get_nearest(get_position()));
-			m_body.exert(m_acceleration, 0.25);
+void Creature::manage_view(ForceManager::View& surroundings) const {
+	for (auto& type : surroundings) {
+		//update the displacement vectors
+		for (auto& observations : type) {
+			observations.from_perspective(get_position());
 		}
 
+		//make sure they are sorted by the new sitance
+		auto sort_key{
+			[](const MovementAnalyzer::Observation& a, const MovementAnalyzer::Observation& b) {
+				return a.distance < b.distance;}
+		};
+		std::sort(type.begin(), type.end(), sort_key);
 	}
-	else {
+
+}
+
+ForceManager::View Creature::make_view(const Surroundings& surroundings) {
+	
+	ForceManager::View view{ };
+	m_goal = nullptr;
+
+	for (auto flag : m_brain.get_flags()) {
+		view.push_back(std::vector<Observation>{});
+
+		//if we don't have anything for this flag no need to do the rest below
+		if (!surroundings.contains(flag) || surroundings.at(flag).empty()) {
+			continue;
+		}
+		std::vector<Observation>& new_line{ view.back() };
+		for (auto resource : surroundings.at(flag)) {
+			//make sure the resource is seen from the correct perspective of the creature
+			Observation thing{ resource };
+			thing.from_perspective(get_position());
+			new_line.push_back(thing);
+		}
+
+		auto sort_key{
+			[](const Observation& a, const Observation& b) {
+				return a.distance < b.distance;}
+		};
+		std::sort(new_line.begin(), new_line.end(), sort_key);
+		update_goal(flag, new_line[0]);
+	}
+	return view;
+}
+
+bool Creature::should_replace_goal(Body::Need need, double distance) const {
+	bool desire{m_body.felt_need(need) < s_SEEKING_THRESHOLDS[need] };
+	//new resource has to be something the creature is willling to use and closer than the current goal
+	return desire && (!m_goal || (m_goal->get_distance() > distance));
+}
+
+
+void Creature::update_goal(Ecology flag, const Observation& potential_goal) {
+	MetaEcology relationship{ m_brain.get_relationship(flag) };
+	//flag determines which need will be checked against
+	switch (relationship) {
+	case MetaEcology::water:
+		if (should_replace_goal(Body::Need::water, potential_goal.distance)) {
+			delete m_goal;
+			m_goal = new Goal{ potential_goal,relationship };
+		}
+		break;
+
+	case MetaEcology::food:
+		if (should_replace_goal(Body::Need::calories, potential_goal.distance)) {
+			delete m_goal;
+			m_goal = new Goal{ potential_goal, relationship };
+		}
+		break;
+	case MetaEcology::mate:
+		if (is_available() && potential_goal.distance < m_goal->get_distance()) {
+			delete m_goal;
+			m_goal = new Goal{ potential_goal, relationship };
+		}
+		break;
+	}
+}
+
+
+void Creature::move(const Surroundings& surroundings) {
+	ForceManager::View view{ make_view(surroundings)};
+	
+	//figure out desired acceleration
+	if (!surroundings.empty()) {
+		constexpr int steps{ 4 };
+		constexpr double fraction{ 1.0 / steps };
+		//take some individual steps using the view given.
+		for (int i{}; i < steps; ++i) {
+			Body::Status status{ m_body.make_status()};
+			m_acceleration = m_brain.response(status, view);
+			m_body.exert(m_acceleration, fraction);
+			manage_view(view);
+		}
+
+		//at this point we could use this to determine what actions might be available
+		//at this point we are doing that by finding the closest 
+		ForceManager::Flags flags{ m_brain.get_flags() };
+		for (int i{}; i < flags.size(); ++i) {
+			if (view[i].empty()) {
+				continue;
+			}
+			update_goal(flags[i], view[i][0]);
+		}
+	}
+	//note make_view will leave m_goal as a nullpointer if none of the objects
+	//within eyesight are above the seeking threshold, so this only runs if it doesn't
+	//see anything interesting
+	if (!m_goal) {
 		acc_neutral();
 		m_body.exert(m_acceleration);
 	}
@@ -60,7 +160,7 @@ void Creature::move() {
 
 bool Creature::above_threshold(Body::Need need) {
 	assert(need != Body::Need::num_needs);
-	return m_body.felt_need(need) >= m_THRESHOLDS[need];
+	return m_body.felt_need(need) >= s_MATING_THRESHOLDS[need];
 }
 
 void Creature::update() {
@@ -82,27 +182,6 @@ void Creature::update() {
 		return;
 	}
 
-
-	//if the current state matches that states requirement we keep that state
-	if (m_state < Body::Need::num_needs && !above_threshold(static_cast<Body::Need>(m_state))) {
-		return;
-	}
-
-	//else go through and check if the state needs to be updated
-	for (int need{}; need < Body::Need::num_needs; ++need) {
-		if (!above_threshold(static_cast<Body::Need>(need))) {
-			if (m_state != static_cast<State>(need)) {
-				m_state = static_cast<State>(need);
-				m_goal = nullptr;
-			}
-			return;
-		}
-	}
-
-	if (m_state != horny){
-		m_state = horny;
-		m_goal = nullptr;
-	}
 }
 
 
@@ -111,8 +190,8 @@ Creature* Creature::reproduce(Creature* other){
 	Creature& mate{ *other };
 
 	const double eyesight{ combine_scaled(m_EYESIGHT, mate.m_EYESIGHT) };
-	Genotype baby_genes{ m_body.reproduce(mate.m_body), eyesight , coinFlip()};
-	return new Creature{ get_position(), baby_genes};
+	Genotype baby_genes{ m_body.reproduce(mate.m_body), eyesight, m_brain.reproduce(mate.m_brain) };
+	return new Creature{ get_position(), baby_genes };
 }
 
 //function to make printing positions nicer
@@ -153,11 +232,7 @@ bool Creature::goal_in_reach() {
 		return false; 
 	}
 
-	return (m_goal->get_distance(get_position())) < m_REACH;
-}
-
-void Creature::set_goal(SurvivalResource* new_goal) {
-	if (new_goal && new_goal->get_distance(get_position()) < m_EYESIGHT) { m_goal = new_goal; }
+	return (m_goal->get_distance()) < s_REACH;
 }
 
 constexpr std::string_view getStateName(Creature::State state) {
@@ -175,7 +250,7 @@ std::ostream& operator<<(std::ostream& out, Creature::State state) {
 }
 
 int Creature::time_till_unavailable() const {
-	return m_body.time_till_unavailable(m_THRESHOLDS);
+	return m_body.time_till_unavailable(s_MATING_THRESHOLDS);
 }
 
 int Creature::time_till_dead() const {

@@ -4,7 +4,7 @@
 #include "FrictionAnalyzer.h"
 #include <utility>
 
-MovementAnalyzer* MovementAnalyzer::reproduce(MovementAnalyzer* mate) const {
+MovementAnalyzer::MetaGenotype* MovementAnalyzer::reproduce(MovementAnalyzer* mate) const {
 	//test compatability
 	const AnalyzerType mate_type{ mate->get_type() };
 	assert(get_type() == mate_type);
@@ -14,14 +14,11 @@ MovementAnalyzer* MovementAnalyzer::reproduce(MovementAnalyzer* mate) const {
 	MetaGenotype* mate_genes{ mate->get_genotype() };
 	MetaGenotype* baby_genes{my_genes->reproduce(mate_genes)};
 
-	//make the new analyzer
-	MovementAnalyzer* baby{ build_analyzer(baby_genes) };
-
 	//clean up parent genes.
 	delete my_genes;
 	delete mate_genes;
 
-	return baby;
+	return baby_genes;
 }
 
 MovementAnalyzer* build_analyzer(const MovementAnalyzer::MetaGenotype* genes) {

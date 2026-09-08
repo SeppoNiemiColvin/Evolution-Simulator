@@ -17,7 +17,7 @@
 
 using Eigen::Vector2d;
 
-
+class MovementAnalyzer;
 class Creature;
 
 class Body
@@ -34,6 +34,7 @@ public:
 
 	using NeedSet = std::unordered_set<Need>;
 	using NeedList = std::array<double, num_needs>;
+	using NeedVector = Eigen::Matrix<double, static_cast<int>(num_needs), 1>;
 
 	//these mark different locations in the genotype to more easily signal where a problem occured
 	//when  testing validity. only variables that can go wrong are listed
@@ -57,6 +58,15 @@ public:
 		// Raises an exception if not
 		void test_validity() const;
 	};
+
+	//gathers input information for consolidate into one place
+	//this is stuff about the creature itself/the creature's expereince of the world
+	//may eventually include things like temperature
+	struct Status {
+		NeedVector felt_needs;
+		const Vector2d& velocity;
+	};
+
 private:
 	//reserve caps determine how much of that need the creature can store.
 //water is lower to reflect that we need to drink more frequently/can't last as long without water as food
@@ -92,10 +102,11 @@ public:
 	//get information about the creatures current state
 	double current_reserve(Need need) const { return m_current_reserves[need]; }
 	std::string print_reserve(Need need) const;
+	Status make_status() const;
 	double felt_need(Need need) const { return m_current_reserves[need] / m_RESERVE_CAPS[need]; };
 	Vector2d get_position() const { return m_position; }
 	Vector2d get_velocity() const { return m_velocity; }
-	double get_speed() const { return m_velocity.norm(); }
+	double get_speed()  const { return m_velocity.norm(); }
 	bool is_dead() const;
 
 	//get information about the creatures genotype

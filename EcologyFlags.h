@@ -15,4 +15,12 @@ enum class Ecology {
 	num_flags
 };
 
+//these rerepresent the realtionship a creature has to an object
+enum class MetaEcology {
+	food,
+	water,
+	mate,
+	danger,
+	num_metaflags
+};
 #endif

@@ -60,11 +60,14 @@ void wander(const std::string& file_name, int bound, bool verbose) {
     constexpr int time_stretch{ 5 };
     Body::Genotype body_genes{ {100.0 * time_stretch, 100.0 * time_stretch},
         100.0/time_stretch, 50.0/(time_stretch * time_stretch)};
-    Creature::Genotype genes{body_genes, 300.0};
+    Creature::Genotype genes{ body_genes, 300.0 };
+    genes.brain_genes.build_resource_flag(Ecology::bush, MetaEcology::food);
+    genes.brain_genes.build_resource_flag(Ecology::pond, MetaEcology::water);
 
-    std::ofstream position_file{ file_name + "_position.csv"};
-    std::ofstream food_file{ file_name + "_food.csv" };
-    std::ofstream water_file{ file_name + "_water.csv" };
+    std::string full_file_name{ "MovementRecords/" + file_name };
+    std::ofstream position_file{ full_file_name + "_position.csv"};
+    std::ofstream food_file{ full_file_name + "_food.csv" };
+    std::ofstream water_file{ full_file_name + "_water.csv" };
     if (!position_file || !food_file || !water_file) {
         std::cerr << "Unable to open output file(s)\n";
         return;
@@ -317,7 +320,7 @@ bool test_creatures() {
     Creature mate{ Vector2d{10.0, 15.0}, genes };
     mate.eat();
     mate.drink();
-    gooblet.set_goal(&mate);
+    gooblet.set_goal(&mate, MetaEcology::mate);
 
     const int run_time{ mate.time_till_unavailable() };
     for (int time{}; time < run_time; ++time) {
@@ -684,7 +687,6 @@ bool test_friction_analyzer(bool verbose) {
 }
 
 bool test_force_manager(bool verbose) {
-    using MetaEcology = ForceManager::Genotype::MetaEcology;
     ForceManager::Genotype genes{};
 
     genes.build_resource_flag(Ecology::bush, MetaEcology::food);

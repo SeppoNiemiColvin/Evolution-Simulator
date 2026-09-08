@@ -108,6 +108,6 @@ def collect_run_data(prefix : str):
 
 
 if __name__ == "__main__":
-    prefix = "GoalBaesedWandering"
-    for i in range(5):
-        collect_run_data(prefix + str(i))
+    prefix = "ForceBasedWandering"
+    collect_run_data(prefix + str(0))
+    collect_run_data(prefix + str(1))

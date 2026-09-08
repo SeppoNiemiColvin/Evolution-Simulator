@@ -39,14 +39,8 @@ public:
 	};
 
 	using NeedVector = Eigen::Matrix<double, static_cast<int>(Body::Need::num_needs), 1>;
+	using Status = Body::Status;
 
-	//gathers input information for consolidate into one place
-	//this is stuff about the creature itself/the creature's expereince of the world
-	//may eventually include things like temperature
-	struct Status {
-		NeedVector felt_needs;
-		Vector2d& velocity;
-	};
 	/*
 	* Types of movement deciders (see below)
 	* This gives a way to do polymorphism for flexibility but still be able to signal back
@@ -86,7 +80,7 @@ public:
 
 	//makes a new movement anlayzer from two initial movement analyzers
 	//will yell if they are not of the same type
-	virtual MovementAnalyzer* reproduce(MovementAnalyzer* mate) const;
+	virtual MetaGenotype* reproduce(MovementAnalyzer* mate) const;
 
 	virtual MetaGenotype* get_genotype() const = 0;
 };

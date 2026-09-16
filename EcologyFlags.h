@@ -1,6 +1,8 @@
 #ifndef ECOLOGY_FLAG_H80123
 #define ECOLOGY_FLAG_H80123
 
+#include <iostream>
+#include <fstream>
 /*
 * This enumeration will help creatures communicate with the simulation as to
 * what information it is looking for. Defined here since it didn't make sense
@@ -23,4 +25,18 @@ enum class MetaEcology {
 	danger,
 	num_metaflags
 };
+
+enum class Species
+{
+	gooblet,
+	num_species
+};
+
+constexpr std::string_view getEcoName(Ecology flag);
+std::ostream& operator<<(std::ostream& out, Ecology flag);
+std::ofstream& operator<<(std::ofstream& out, Ecology flag);
+
+constexpr std::string_view getMetaEcoName(MetaEcology flag);
+std::ostream& operator<<(std::ostream& out, MetaEcology flag);
+std::ofstream& operator<<(std::ofstream& out, MetaEcology flag);
 #endif

@@ -28,7 +28,7 @@ void wander(const std::string& file_name, int bound, bool verbose = false);
 * general feedback. Created to explore mysterious population crashes
 */
 
-void small_pop(int bound);
+void small_pop(const std::string& file_name, int bound);
 
 /*
 * Given an average distancce between food sources

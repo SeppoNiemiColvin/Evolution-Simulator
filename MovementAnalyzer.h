@@ -5,7 +5,9 @@
 #include "SurvivalResource.h"
 #include <vector>
 #include "Body.h"
-
+#include <fstream>
+#include <string_view>
+#include <iostream>
 using Eigen::Vector2d;
 
 
@@ -53,12 +55,31 @@ public:
 		obstacle,
 		num_types
 	};
+	enum class GeneStructure {
+		linear,
+		num_gene_types
+	};
 
 	struct MetaGenotype {
 		AnalyzerType type{};
-
-		MetaGenotype(AnalyzerType _type) : type { _type }{};
+		GeneStructure structure{};
+		MetaGenotype(AnalyzerType _type, GeneStructure _structure) :
+			type { _type },
+			structure{_structure}
+		{};
 		virtual MetaGenotype* reproduce(MetaGenotype* mate) const = 0;
+		virtual void clear() =0;
+
+		//provides a heading for recording this genotype
+		virtual std::string header(std::string_view prefix) const =0;
+		//prints this genotype to the given file
+		virtual void print_to_file(std::ofstream& file) const = 0;
+		virtual std::string as_string() const = 0;
+		
+		void virtual operator+= (const MetaGenotype* genes)=0;
+		friend MetaGenotype* operator+(const MetaGenotype& gene1, const MetaGenotype& gene2);
+		friend MetaGenotype* operator/(const MetaGenotype& genes, const double denominator);
+		static MetaGenotype* zero(AnalyzerType type);
 	};
 
 	struct LinearGenotype : public MetaGenotype {
@@ -68,6 +89,15 @@ public:
 
 		LinearGenotype(AnalyzerType type, const NeedVector& coefficients, double offset, double exponent);
 		MetaGenotype* reproduce(MetaGenotype* mate) const;
+		void clear();
+		std::string header(std::string_view prefix) const;
+		void print_to_file(std::ofstream& file) const;
+		std::string as_string() const;
+
+		void operator+=(const MetaGenotype* genes);
+		friend LinearGenotype operator+(const LinearGenotype& genes1, const LinearGenotype& genes2);
+		friend LinearGenotype operator/(const LinearGenotype& genes, const double denominator);
+		static LinearGenotype zero(AnalyzerType type);
 	};
 
 	//based on a resource handed in gives a desired acceleration towards or way from the resource
@@ -86,4 +116,21 @@ public:
 };
 
 MovementAnalyzer* build_analyzer(const MovementAnalyzer::MetaGenotype* genes);
+
+//some printing helpers
+constexpr std::string_view getAnalyzerTypeName(MovementAnalyzer::AnalyzerType type);
+std::ostream& operator<<(std::ostream& out, MovementAnalyzer::AnalyzerType type);
+std::ofstream& operator<<(std::ofstream& out, MovementAnalyzer::AnalyzerType type);
+
+//adding genotypes (movement analyzer will dynamic cast out then add together
+MovementAnalyzer::LinearGenotype operator+(const MovementAnalyzer::LinearGenotype& genes1,
+	const MovementAnalyzer::LinearGenotype& genes2);
+MovementAnalyzer::MetaGenotype* operator+(const MovementAnalyzer::MetaGenotype& gene1,
+	const MovementAnalyzer::MetaGenotype& gene2);
+
+//allow us to devide genotypes by a number.
+MovementAnalyzer::MetaGenotype* operator/(const MovementAnalyzer::MetaGenotype& genes,
+	const double denominator);
+MovementAnalyzer::LinearGenotype operator/(const MovementAnalyzer::LinearGenotype& genes,
+	const double denominator);
 #endif

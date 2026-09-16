@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 #include "Prehash.h"
+#include "SurvivalResource.h"
+#include "MovementAnalyzer.h"
 #include <iostream>
 /*
 * This is similar to ResourceFinder but designed for creatures
@@ -24,6 +26,7 @@ class ResourceSet
 public:
 	using LocationLookUp = std::unordered_map<CoordPrehash, std::vector<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and distance
+	using Observation = MovementAnalyzer::Observation;
 
 private:
 	std::unordered_set<T*> m_all_resources{};
@@ -118,6 +121,26 @@ public:
 		return answer;
 	}
 
+	std::vector<Observation> look_around(const Vector2d& position, double eyesight) {
+		std::vector<Observation> answer{};
+		std::unordered_set<T*> seen{};
+		double distance{ eyesight };
+
+		std::unordered_set<CoordPrehash> coords_to_check{ relevant_coords(position, eyesight) };
+
+		for (auto coord : coords_to_check) {
+			if (!m_available_resources.contains(coord) || m_available_resources[coord].empty()) {
+				continue;
+			}
+			for (const auto& resource : m_available_resources[coord]) {
+				if (resource->get_distance(position) <= eyesight) {
+					answer.push_back(Observation{resource});
+					answer.back().from_perspective(position);
+				}
+			}
+		}
+		return answer;
+	}
 	//removes a resource from the ResourceSet
 	void erase(T* dead_resource) {
 		m_all_resources.erase(dead_resource);
@@ -187,7 +210,7 @@ public:
 	int available_size() const {
 		int total{};
 		for (auto coord : m_available_resources) {
-			total += coord.second.size();
+			total += static_cast<int>(coord.second.size());
 		}
 		return total;
 	}

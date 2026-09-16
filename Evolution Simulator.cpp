@@ -9,6 +9,7 @@
 #include "Simulation.h"
 #include "Rectangle.h"
 #include "testingsuite.h"
+#include "PopulationGenome.h"
 
 int main()
 {
@@ -19,9 +20,22 @@ int main()
     assert(test_desire_analyzer() && "Desire Analyzer Failed");
     assert(test_friction_analyzer() && "Frictoin Analyzer Failed");
 
-    std::string prefix{ "ForceBasedWandering" };
-    wander(prefix + std::to_string(0), 400);
-    wander(prefix + std::to_string(1), 400);
+    Creature::Genotype genes1{ DefaultBrainGenes::gooblet() };
+    Creature::Genotype genes2{ DefaultBrainGenes::gooblet() };
+    genes2.body_genes.max_speed += 20.0;
+
+    PopulationGenome pop{ Species::gooblet };
+    pop += genes1;
+    pop += genes2;
+
+    std::string file_name{ "test1.csv" };
+    std::ofstream file{ file_name };
+    file << pop.header() << '\n';
+    file << pop << std::endl;
+
+    file_name = "test3";
+    test_density(5e3, 200.0, file_name);
+
 }
 
 

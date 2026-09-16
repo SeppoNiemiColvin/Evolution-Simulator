@@ -4,6 +4,7 @@
 #include <iostream>
 #include <functional>
 #include "ReproHelpers.h"
+#include "PopulationGenome.h"
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	const Creature::Genotype& genes, int population_size,
@@ -165,8 +166,8 @@ void Simulation::add_random_population(int population_size, const Creature::Geno
 
 void Simulation::attempt_goal(Creature* gooblet, bool isFemale) {
 	if (gooblet->goal_in_reach()) {
-		Creature::Goal* goal{ gooblet->get_goal() };
-		switch (goal->type) {
+		Creature::Goal& goal{ gooblet->get_goal() };
+		switch (goal.type) {
 		case MetaEcology::water:
 			gooblet->drink();
 			break;
@@ -175,15 +176,8 @@ void Simulation::attempt_goal(Creature* gooblet, bool isFemale) {
 			gooblet->eat();
 			break;
 		case MetaEcology::mate:
-			//reproduce
-			Creature* mate{};
-			const double checking_distance{ 1.0 };
-			if (isFemale) {
-				mate = m_malePopulation.find_closest_to(goal->get_position(), checking_distance);
-			}
-			else {
-				mate = m_femalePopulation.find_closest_to(goal->get_position(), checking_distance);
-			}
+			Creature* mate{ dynamic_cast<Creature*>(goal.desire.object)};
+
 			assert(mate && "goal_in_reach should ensure there is a mate in reach");
 			gooblet->use();
 			//currently adding to female
@@ -198,7 +192,7 @@ void Simulation::attempt_goal(Creature* gooblet, bool isFemale) {
 			
 			break;
 		}
-		goal-> desire.object->use();
+		goal.desire.object->use();
 	}
 }
 
@@ -235,21 +229,44 @@ void Simulation::update() {
 
 }
 
-Simulation::Surroundings Simulation::look_around(Creature* animal) {
+Simulation::Surroundings Simulation::look_around(Creature* animal, bool isFemale) {
 	//ask animal what types of things
 	std::vector<Ecology> flags{ animal->get_flags() };
+	const Vector2d position{ animal->get_position() };
+	const double eyesight{ animal->get_eyesight() };
 	Surroundings things_around{};
 	for (auto flag : flags) {
 		//pull nearby things of that desire
-		std::vector<SurvivalResource*> nearby_resources;
+		std::vector<MovementAnalyzer::Observation> nearby_resources;
+		std::vector<FoodSource*> bushes{};
 		switch (flag) {
 		case Ecology::bush:
-			nearby_resources = m_foodManager.within_eyesight_generic(animal->get_position(), animal->get_eyesight());
+			bushes = m_foodManager.within_eyesight(position, eyesight);
+			nearby_resources.resize(bushes.size());
+			for (int index{}; index < bushes.size(); ++index) {
+				nearby_resources[index] = MovementAnalyzer::Observation{ bushes[index] };
+				nearby_resources[index].from_perspective(position);
+				nearby_resources[index].intensity = bushes[index]->get_fruit();
+			}
 			break;
 		case Ecology::pond:
-			nearby_resources = m_waterManager.within_eyesight_generic(animal->get_position(), animal->get_eyesight());
+			nearby_resources = m_waterManager.look_around(position, eyesight);
+			break;
+
+		case Ecology::gooblet_mate:
+			if (!(animal->is_available())) {
+				break;
+			}
+			if (isFemale) {
+				nearby_resources = m_malePopulation.look_around(position, eyesight);
+			}
+			else {
+				nearby_resources = m_femalePopulation.look_around(position, eyesight);
+			}
+			break;
 		}
 		if (!nearby_resources.empty()) {
+			//remove any blocked by ponds
 			things_around[flag] = nearby_resources;
 		}
 	}
@@ -258,7 +275,7 @@ Simulation::Surroundings Simulation::look_around(Creature* animal) {
 
 void Simulation::update_population(ResourceSet<Creature>& population, bool isFemale) {
 	for (Creature* animal : population) {
-		Surroundings things_around{ look_around(animal) };
+		Surroundings things_around{ look_around(animal, isFemale) };
 		animal->move(things_around);
 
 		//implement obstacles
@@ -343,36 +360,43 @@ double Simulation::total_hydration() const {
 }
 
 void Simulation::run_and_record(const std::string& file_name, int bound) {
-	std::ofstream output_file{ file_name };
+	std::ofstream output_file{ file_name  +".csv"};
 	if (!output_file) {
 		std::cerr << "Unable to open output file\n";
 		return;
 	}
 
 	//header for the csv
-	output_file << "Population" << ",Biomass" << ",Speed" << ",Acceleration" << ",Eyesight" << '\n';
+	PopulationGenome pop{ Species::gooblet };
+	output_file << pop.header() << ",Biomass" << '\n';
 
 	//run the simulationa nd record results. print occasionally to keep updated
 	for (int time{}; time < bound; ++time) {
-		const int population{ population_size() };
-		const double speed{ average_speed() };
-		const double acceleration{ average_acceleration() };
-		const double eyesight{ average_eyesight() };
+		pop.clear();
+		for (auto animal : m_femalePopulation) {
+			pop += animal;
+		}
+		for (auto animal : m_malePopulation) {
+			pop += animal;
+		}
 		const double biomass{ total_biomass() };
-		output_file << population << ',' << biomass << ',' << speed << ',' << acceleration << ',' << eyesight << '\n';
+		output_file << pop << ',' << biomass <<'\n';
+
+		if (pop.get_population_size() == 0) {
+			break;
+		}
 
 		update();
 
 		if (time % 100 == 0) {
-			if (population == 0) {
-				break;
-			}
+
 			std::cout << "Time:\t" << time << '\n';
-			std::cout << "Population:\t" << population << '\n';
+			std::cout << "Population:\t" << pop.get_population_size() << '\n';
 			std::cout << "Biomass: \t" << biomass << '\n';
-			std::cout << "Avg. Speed:\t" << speed << '\n';
-			std::cout << "Avg. Acc:\t" << acceleration << '\n';
-			std::cout << "Avg. Eyesight:\t" << eyesight << '\n';
+			Creature::Genotype average{ pop.average_genotype() };
+			std::cout << "Avg. Speed:\t" << average.body_genes.max_speed << '\n';
+			std::cout << "Avg. Acc:\t" << average.body_genes.max_acceleration << '\n';
+			std::cout << "Avg. Eyesight:\t" << average.eyesight << '\n';
 			std::cout << std::endl;
 
 		}

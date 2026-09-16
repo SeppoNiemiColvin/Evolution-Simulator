@@ -108,6 +108,9 @@ def collect_run_data(prefix : str):
 
 
 if __name__ == "__main__":
-    prefix = "ForceBasedWandering"
-    collect_run_data(prefix + str(0))
-    collect_run_data(prefix + str(1))
+    prefix = "MovementRecords/test"
+    creatures = pd.read_csv(prefix + "_position.csv")
+    food = pd.read_csv(prefix + "_food.csv")
+    water = pd.read_csv(prefix + "_water.csv")
+    fig, ax = display_movement(creatures, water, food)
+    fig.savefig(prefix + "scatter_full.png")

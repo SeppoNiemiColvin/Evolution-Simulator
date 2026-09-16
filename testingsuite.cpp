@@ -60,9 +60,7 @@ void wander(const std::string& file_name, int bound, bool verbose) {
     constexpr int time_stretch{ 5 };
     Body::Genotype body_genes{ {100.0 * time_stretch, 100.0 * time_stretch},
         100.0/time_stretch, 50.0/(time_stretch * time_stretch)};
-    Creature::Genotype genes{ body_genes, 300.0 };
-    genes.brain_genes.build_resource_flag(Ecology::bush, MetaEcology::food);
-    genes.brain_genes.build_resource_flag(Ecology::pond, MetaEcology::water);
+    Creature::Genotype genes{ DefaultBrainGenes::gooblet(), body_genes, 300.0 };
 
     std::string full_file_name{ "MovementRecords/" + file_name };
     std::ofstream position_file{ full_file_name + "_position.csv"};
@@ -101,18 +99,29 @@ void wander(const std::string& file_name, int bound, bool verbose) {
     simulation.print_water();
 }
 
-void small_pop(int bound) {
-    Creature::Genotype genes{};
+void small_pop(const std::string& file_name, int bound) {
+    Creature::Genotype genes{DefaultBrainGenes::gooblet()};
     const double starting_speed{ genes.body_genes.max_speed };
 
-    Simulation simulation{ 0.0, starting_speed * 10, 0.0, starting_speed * 10, genes, 2, 5, 15 * pow(starting_speed,2), 3};
+    Simulation simulation{ 0.0, starting_speed * 10, 0.0, starting_speed * 10, genes, 2, 6, 15 * pow(starting_speed,2), 3};
     simulation.print_water();
     simulation.print_population();
+
+
+    std::string full_file_name{ "MovementRecords/" + file_name };
+    std::ofstream position_file{ full_file_name + "_position.csv" };
+    std::ofstream food_file{ full_file_name + "_food.csv" };
+    std::ofstream water_file{ full_file_name + "_water.csv" };
+    simulation.record_food(food_file);
+    simulation.record_water(water_file);
 
     for (int time{}; time < bound; ++time) {
         simulation.update();
         std::cout << "Time: " << time << '\n';
         std::cout << "Population: " << simulation.population_size() << '\n';
+        simulation.record_population_positions(position_file, time);
+
+        //print to console
         simulation.print_population();
         simulation.print_water();
         simulation.print_food();
@@ -126,7 +135,7 @@ void small_pop(int bound) {
 //note that sim1 was map_size 2e3 and food_diameter 30.0
 void test_density(double map_size, double food_diameter, const std::string& file_path) {
     const double starting_speed{ 100.0 };
-    const double water_area{ map_size * map_size / 40 };
+    const double water_area{ map_size * map_size / 20 };
     const int pond_number{ static_cast<int>(water_area / (5 * starting_speed * starting_speed) )};
 
 	const double food_area{ food_diameter * food_diameter * 3.141592 };
@@ -134,13 +143,13 @@ void test_density(double map_size, double food_diameter, const std::string& file
     std::cout << "Available Food: " << food_number << '\n';
     std::cout << "Available Water: " << water_area << '\n';
 
-    Creature::Genotype genes{};
+    Creature::Genotype genes{ DefaultBrainGenes::gooblet()};
     genes.body_genes.max_speed = starting_speed;
 
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
         genes, 100, food_number, water_area, pond_number };
 
-    simulation.run_and_record(file_path, 10000);
+    simulation.run_and_record(file_path, 15000);
 }
 
 bool test_regions() {
@@ -284,9 +293,8 @@ bool test_resource_finder() {
 }
 
 bool test_creatures() {
-    Creature::Genotype genes{};
-    genes.body_genes.reserve_caps[0] = 200.0;
-    genes.body_genes.reserve_caps[1] = 200.0;
+    Body::Genotype body_genes{ {200.0, 200.0} };
+    Creature::Genotype genes{ {},body_genes };
     bool answer{ true };
     Creature gooblet{ Vector2d{}, genes };
 
@@ -333,7 +341,7 @@ bool test_creatures() {
         answer = false;
     }
 
-    if (gooblet.get_goal()) {
+    if (gooblet.goal_is_active()) {
         std::cout << "Gooblet should have released goal\n";
         answer = false;
     }

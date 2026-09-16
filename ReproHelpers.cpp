@@ -12,7 +12,7 @@ double combine_scaled(const double parent1, const double parent2) {
 	static std::normal_distribution distribution(0.0, 1.0);
 
 	const double average{ (parent1 + parent2) / 2 };
-	return average * pow(1.03, distribution(generator));
+	return average * pow(1.06, distribution(generator));
 }
 
 double combine_flat(const double parent1, const double parent2, const double scale) {
@@ -25,5 +25,5 @@ double combine_flat(const double parent1, const double parent2, const double sca
 
 bool coinFlip() {
 	static std::mt19937_64 generator;
-	return generator() % 2 == 0;
+	return (generator() % 2 ) == 0;
 }

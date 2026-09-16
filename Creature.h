@@ -13,6 +13,7 @@
 #include "Body.h"
 #include "ForceManager.h"
 #include <unordered_map>
+#include <fstream>
 
 using Eigen::Vector2d;
 
@@ -20,19 +21,14 @@ using Eigen::Vector2d;
 class Creature : public SurvivalResource
 {
 public:
-	using Surroundings = std::unordered_map<Ecology, std::vector<SurvivalResource*>>;
 	using NeedList = Body::NeedList;
 	using Observation = MovementAnalyzer::Observation;
-
+	using Surroundings = std::unordered_map<Ecology, std::vector<Observation>>;
 	//if I end up having things like predators and the like
 	//tracking species will help me build them from the same base
 	//While having something to mark that certain creatures shouldn't
 	//even try to reproduce
-	enum Species
-	{
-		gooblet,
-		num_species
-	};
+
 
 	//current state of the gooblet.
 	//note the first states correspond to being low on the corresponding needs
@@ -53,21 +49,38 @@ public:
 	};
 	struct Genotype
 	{
-		Body::Genotype body_genes{};
-		double eyesight{ body_genes.max_speed * 3 };
 		ForceManager::Genotype brain_genes{};
+		Body::Genotype body_genes{};
+		double eyesight{ body_genes.max_speed * 2.0  };
+
+
 		//raises an exception if there is a problem with this genotype
 		void test_validity() const;
+		//sets this to the additive identity
+		void clear();
+		//prints a header of a csv doc
+		std::string header() const;
+		//prints this specific genotype
+		void print_to_file(std::ofstream& file) const;
+		std::string as_string() const;
+		
+
+		void operator+=(const Genotype& genes);
+		friend Genotype operator+(const Genotype& genes1, const Genotype& genes2);
+		friend Genotype operator/(const Genotype& genes, const double denominator);
+		//addative identity for genotypes
+		static Genotype zero(Species structure = Species::gooblet);
 	};
 
 	//bundles an observation with its type so that way we have enough information to interpret the goal
 	struct Goal {
+		bool active{ false };
 		Observation desire;
 		MetaEcology type;
 
 		double get_distance() const { return desire.distance; }
 		void from_perspective(const Vector2d& position) { desire.from_perspective(position); }
-		bool is_available() const { return desire.object->is_available(); }
+		bool is_available() const { return active && desire.object->is_available(); }
 		Vector2d get_position() const { return desire.object->get_position(); }
 	};
 
@@ -79,7 +92,7 @@ private:
 	// providing the fraction of the reserve cap that must be met for matting can happen
 	//they are static to provide a species wide constraint if the caps evolve.
 	static inline NeedList s_MATING_THRESHOLDS{ 0.6, 0.6 };
-	static inline NeedList s_SEEKING_THRESHOLDS{ 0.8, 0.8 };
+	static inline NeedList s_SEEKING_THRESHOLDS{ 0.7, 0.7 };
 
 	const double m_EYESIGHT{};
 	//movement/action property. Not currently evolvable
@@ -92,7 +105,7 @@ private:
 	//these track the gooblets current deires.
 	//the goal is a pointer toward the survival resource the gooblet is currently after
 	//helps prevent us from having to rellook this up constantly.
-	Goal* m_goal{};
+	Goal m_goal{};
 	State m_state{ State::hungry };
 	ForceManager m_brain;
 
@@ -161,19 +174,22 @@ public:
 	Species get_species() const { return m_SPECIES; }
 	double get_eyesight() const { return m_EYESIGHT; }
 	double get_reach() const { return s_REACH; }
+	Genotype get_genotype() const;
 
 	//goal tracking/control
 	std::vector<Ecology> get_flags() const {
 		return m_brain.get_flags();
 	}
 
-	bool is_seeking() const { return !m_goal || !(m_goal->is_available()); }
+	bool is_seeking() const { return !m_goal.active || !(m_goal.is_available()); }
 	bool goal_in_reach();
-	Goal* get_goal() { return m_goal; }
+	bool goal_is_active() const { return m_goal.active; }
+	Goal& get_goal() { return m_goal; }
 	void set_goal(SurvivalResource* goal, MetaEcology type) {
-		delete m_goal;
-		m_goal = new Goal{ Observation{goal}, type };
-		m_goal->from_perspective(get_position());
+		m_goal.active = true;
+		m_goal.type = type;
+		m_goal.desire.object = goal;
+		m_goal.from_perspective(get_position());
 	}
 
 	//as a Survival resource use means mate
@@ -199,4 +215,7 @@ public:
 
 std::ostream& operator<<(std::ostream& out, Creature::State state);
 
+//genotype arithmetic
+Creature::Genotype operator+(const Creature::Genotype& genes1, const Creature::Genotype& genes2);
+Creature::Genotype operator/(const Creature::Genotype& genes, double denominator);
 #endif

@@ -8,9 +8,9 @@
 #include<unordered_map>
 #include<utility>
 #include "Prehash.h"
+#include "MovementAnalyzer.h"
 
 using Eigen::Vector2d;
-class SurvivalResource;
 
 //This Manages SurvivalResources of fixed length.
 //T should be a SurvivalResource
@@ -23,6 +23,7 @@ public:
 	//data structure that will make look up within eyessight range easier
 	using LocationLookUp = std::unordered_map<CoordPrehash, std::unordered_set<T*>>;
 	using Report = std::pair<T*, double>; //this records the closest resource and its distance
+	using Observation = MovementAnalyzer::Observation;
 
 private:
 	//this is the owner of the resources
@@ -184,9 +185,11 @@ public:
 		return answer;
 	}
 
-	std::vector<SurvivalResource*> within_eyesight_generic(const Vector2d& position, double eyesight) {
+	std::vector<Observation> look_around(const Vector2d& position, double eyesight) {
+		
+
 		std::unordered_set<T*> seen{};
-		std::vector<SurvivalResource*> answer{};
+		std::vector<Observation> answer{};
 		std::unordered_set<CoordPrehash> coords_to_check{
 			relevant_coords(position,eyesight)
 		};
@@ -196,7 +199,8 @@ public:
 			}
 			for (const auto resource : m_available[coord]) {
 				if (resource->get_distance(position) <= eyesight && !seen.contains(resource)) {
-					answer.push_back(static_cast<SurvivalResource*>(resource));
+					answer.push_back(Observation{resource});
+					answer.back().from_perspective(position);
 					seen.insert(resource);
 
 				}

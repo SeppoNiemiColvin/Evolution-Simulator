@@ -29,6 +29,7 @@ public:
 	void use();
 	void update();
 	void print() const;
+	int get_fruit() const { return m_fruits; }
 };
 
 #endif

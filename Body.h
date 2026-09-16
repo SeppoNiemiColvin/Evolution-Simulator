@@ -7,7 +7,10 @@
 #include "HalfPlane.h"
 #include "Rectangle.h"
 #include <string>
+#include <string_view>
 #include <unordered_set>
+#include <fstream>
+#include <iostream>
 
 /*
 * A class to help  refactor the creature class into more managable parts
@@ -47,16 +50,29 @@ public:
 
 	//bundles the needed information to make a creature together for easier passing to construction
 	struct Genotype {
-		NeedList reserve_caps{ 200.0, 200.0 };
+		NeedVector reserve_caps{ 200.0, 150.0 };
 		double max_speed{ 100.0 };
 		double max_acceleration{ max_speed / 2 };
 		NeedSet ignored_needs{};
-		NeedList starting_amounts{ reserve_caps[water], 0.5 * reserve_caps[calories] };
+		NeedVector starting_amounts{ .7 * reserve_caps[water], 0.5 * reserve_caps[calories] };
 
 
 		//makes sure this genotype produces something viable.
 		// Raises an exception if not
 		void test_validity() const;
+		//sets the numerical genes to 0 (so it is the additive identity)
+		void clear();
+
+		//printing
+		std::string static header();
+		void print_to_file(std::ofstream& file) const;
+		std::string to_string() const;
+
+		void operator+=(const Genotype& genes);
+		friend Genotype operator+(const Genotype& genes1, const Genotype& genes2);
+		friend Genotype operator/(const Genotype& genes, double denominator);
+		//makes a base genotype that has nothing in it. Designed as an addative identity
+		static Genotype zero();
 	};
 
 	//gathers input information for consolidate into one place
@@ -70,14 +86,14 @@ public:
 private:
 	//reserve caps determine how much of that need the creature can store.
 //water is lower to reflect that we need to drink more frequently/can't last as long without water as food
-	const NeedList m_RESERVE_CAPS{200.0, 200.0};
+	const NeedVector m_RESERVE_CAPS{200.0, 200.0};
 
 	//controls how fast metabolism happens
-	const NeedList m_METABOLIC_BASE{ -1, -1 };
+	const NeedVector m_METABOLIC_BASE{};
 	//a need being included here means it won't be affected at all
 	const NeedSet m_IGNORED_NEEDS{};
 
-	NeedList m_current_reserves{ m_RESERVE_CAPS };
+	NeedVector m_current_reserves{ m_RESERVE_CAPS };
 	//movement properties. Evolvable traits
 	const double m_MAX_SPEED{};
 	const double m_MAX_ACCELERATION{ 5.0 };
@@ -103,7 +119,7 @@ public:
 	double current_reserve(Need need) const { return m_current_reserves[need]; }
 	std::string print_reserve(Need need) const;
 	Status make_status() const;
-	double felt_need(Need need) const { return m_current_reserves[need] / m_RESERVE_CAPS[need]; };
+	double felt_need(Need need) const { return m_current_reserves(need) / m_RESERVE_CAPS(need); };
 	Vector2d get_position() const { return m_position; }
 	Vector2d get_velocity() const { return m_velocity; }
 	double get_speed()  const { return m_velocity.norm(); }
@@ -140,6 +156,20 @@ public:
 	friend void Rectangle::push_out(Creature* creatue) const;
 };
 
-Body::NeedList create_metabolic_base(Body::Genotype& genes);
+Body::NeedVector create_metabolic_base(Body::Genotype& genes);
 
+//some functions to help with printing
+constexpr std::string_view getNeedName(Body::Need need);
+std::ostream& operator<<(std::ostream& out, Body::Need need);
+std::ofstream& operator<<(std::ofstream& out, Body::Need need);
+
+constexpr std::string_view getGeneName(Body::Gene gene);
+std::ostream& operator<<(std::ostream& out, Body::Gene gene);
+std::ofstream& operator<<(std::ofstream& out, Body::Gene gene);
+
+//genotype artithmetic
+Body::Genotype operator+(const Body::Genotype& genes1, const Body::Genotype& genes2);
+Body::Genotype operator/(const Body::Genotype& genes, double denominator);
+
+std::string to_string(Body::NeedVector needs);
 #endif

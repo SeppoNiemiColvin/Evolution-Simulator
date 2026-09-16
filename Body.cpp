@@ -1,4 +1,4 @@
- #include "Body.h"
+#include "Body.h"
 #include "ReproHelpers.h"
 #include <cmath>
 #include <vector>
@@ -135,14 +135,55 @@ Body::Genotype Body::reproduce(Body& mate_body){
 	const double yolk{ baby_genes.starting_amounts[calories] };
 
 	//deplete reserves based on how much we are giving to the babies
-	m_current_reserves[calories]			-= .52 * yolk;
-	mate_body.m_current_reserves[calories]	-= .52 * yolk;
+	m_current_reserves[calories]			-= .55 * yolk;
+	mate_body.m_current_reserves[calories]	-= .55 * yolk;
 
 	return baby_genes;
 }
 
-Body::NeedList create_metabolic_base(Body::Genotype& genes) {
-	Body::NeedList metabolic_base{};
+std::string Body::Genotype::header(){	
+	std::string answer{};
+	for (int need{}; need < num_needs; ++need) {
+		Need as_need{ static_cast<Need>(need) };
+		auto create_line{
+			[](const Gene gene, const Need need) {
+				std::string line{};
+				line += getGeneName(gene);
+				line += '_';
+				line += getNeedName(need);
+				line += ',';
+				return line;
+			}
+		};
+		
+		answer += create_line(Gene::reserve_cap, as_need);
+		answer += create_line(Gene::starting_amount, as_need);
+	}
+
+	answer += getGeneName(Gene::max_speed);
+	answer +=',';
+	answer += getGeneName(Gene::max_acceleration);
+	answer += ',';
+	return answer;
+}
+
+std::string Body::Genotype::to_string() const {
+	std::string answer{};
+	for (int need{}; need < num_needs; ++need) {
+		answer += std::to_string(reserve_caps[need]) + ',';
+		answer += std::to_string(starting_amounts[need]) + ',';
+	}
+	answer += std::to_string(max_speed) + ',';
+	answer += std::to_string(max_acceleration) + ',';
+	return answer;
+}
+
+void Body::Genotype::print_to_file(std::ofstream& file) const {
+	file << to_string();
+}
+
+Body::NeedVector create_metabolic_base(Body::Genotype& genes) {
+	Body::NeedVector metabolic_base{};
 	for (int need{}; need < Body::Need::num_needs; ++need) {
 		if (!genes.ignored_needs.contains(static_cast<Body::Need>(need))) {
 			metabolic_base[need] = 1.0;
@@ -161,6 +202,8 @@ Body::Status Body::make_status() const {
 
 	return Status{ needs, m_velocity };
 }
+
+
 void Body::Genotype::test_validity() const {
 	constexpr std::string_view positive_error{ "Variable needs to be positive" };
 
@@ -184,4 +227,85 @@ void Body::Genotype::test_validity() const {
 	if (max_acceleration <= 0.0) {
 		throw ErrorMessage{ Gene::max_acceleration, positive_error };
 	}
+}
+
+constexpr std::string_view getNeedName(Body::Need need) {
+	switch (need) {
+	case Body::Need::water:		return "water";
+	case Body::Need::calories:	return "calories";
+	case Body::Need::num_needs: return "need";
+	}
+}
+
+std::ostream& operator<<(std::ostream& out, Body::Need need) {
+	out << getNeedName(need);
+	return out;
+}
+
+std::ofstream& operator<<(std::ofstream& out, Body::Need need) {
+	out << getNeedName(need);
+	return out;
+}
+
+constexpr std::string_view getGeneName(Body::Gene gene) {
+	switch (gene) {
+	case Body::Gene::max_acceleration:		return "max_acceleration";
+	case Body::Gene::max_speed:				return "max_speed";
+	case Body::Gene::reserve_cap:			return "reserve_cap";
+	case Body::Gene::starting_amount:		return "starting_amount";
+	}
+}
+std::ostream& operator<<(std::ostream& out, Body::Gene gene) {
+	out << getGeneName(gene);
+	return out;
+}
+std::ofstream& operator<<(std::ofstream& out, Body::Gene gene) {
+	out << getGeneName(gene);
+	return out;
+}
+
+Body::Genotype operator+(const Body::Genotype& genes1, const Body::Genotype& genes2) {
+	return Body::Genotype{
+		genes1.reserve_caps			+ genes2.reserve_caps,
+		genes1.max_speed			+ genes2.max_speed,
+		genes1.max_acceleration		+ genes2.max_acceleration,
+		genes1.ignored_needs,
+		genes1.starting_amounts		+ genes2.starting_amounts
+	};
+}
+
+Body::Genotype operator/(const Body::Genotype& genes, double denominator) {
+	return Body::Genotype{
+		genes.reserve_caps / denominator,
+		genes.max_speed / denominator,
+		genes.max_acceleration / denominator,
+		genes.ignored_needs,
+		genes.starting_amounts / denominator 
+	};
+}
+
+void Body::Genotype::operator+=(const Body::Genotype& genes) {
+	reserve_caps += genes.reserve_caps;
+	max_speed += genes.max_speed;
+	max_acceleration += genes.max_acceleration;
+	starting_amounts += genes.starting_amounts;
+}
+
+Body::Genotype Body::Genotype::zero() {
+	return Genotype{ NeedVector{}, 0.0, 0.0 };
+}
+
+std::string to_string(Body::NeedVector needs) {
+	std::string answer{};
+	for (int need{}; need < Body::Need::num_needs; ++need) {
+		answer += std::to_string(needs[need]) + ',';
+	}
+	return answer;
+}
+
+void Body::Genotype::clear() {
+	reserve_caps = NeedVector{};
+	max_speed = 0.0;
+	max_acceleration = 0.0;
+	starting_amounts = NeedVector{};
 }

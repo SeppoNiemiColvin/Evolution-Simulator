@@ -17,7 +17,7 @@ struct Body::Genotype;
 class Simulation
 {
 public:
-	using Surroundings = std::unordered_map<Ecology, std::vector<SurvivalResource*>>;
+	using Surroundings = std::unordered_map<Ecology, std::vector<MovementAnalyzer::Observation>>;
 private:
 
 	const Rectangle m_map_base{};
@@ -47,7 +47,7 @@ private:
 	double total_reserves(Body::Need need) const;
 
 	//compiles the features within eyesight of animal 
-	Surroundings look_around(Creature* animal);
+	Surroundings look_around(Creature* animal, bool isFemale);
 public:
 	Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 		const Creature::Genotype& genes, int initial_population,

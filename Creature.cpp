@@ -63,27 +63,21 @@ void Creature::manage_view(ForceManager::View& surroundings) const {
 ForceManager::View Creature::make_view(const Surroundings& surroundings) {
 	
 	ForceManager::View view{ };
-	m_goal = nullptr;
+
+	m_goal.active = false;
 
 	for (auto flag : m_brain.get_flags()) {
-		view.push_back(std::vector<Observation>{});
-
-		//if we don't have anything for this flag no need to do the rest below
-		if (!surroundings.contains(flag) || surroundings.at(flag).empty()) {
+		const bool empty{ !surroundings.contains(flag) || surroundings.at(flag).empty() };
+		view.push_back(empty ? std::vector<Observation>{} : surroundings.at(flag));	
+		if (empty) {
 			continue;
 		}
-		std::vector<Observation>& new_line{ view.back() };
-		for (auto resource : surroundings.at(flag)) {
-			//make sure the resource is seen from the correct perspective of the creature
-			Observation thing{ resource };
-			thing.from_perspective(get_position());
-			new_line.push_back(thing);
-		}
-
+		// if there are things in here then we sort them
 		auto sort_key{
 			[](const Observation& a, const Observation& b) {
 				return a.distance < b.distance;}
 		};
+		std::vector<Observation>& new_line{ view.back() };
 		std::sort(new_line.begin(), new_line.end(), sort_key);
 		update_goal(flag, new_line[0]);
 	}
@@ -93,7 +87,7 @@ ForceManager::View Creature::make_view(const Surroundings& surroundings) {
 bool Creature::should_replace_goal(Body::Need need, double distance) const {
 	bool desire{m_body.felt_need(need) < s_SEEKING_THRESHOLDS[need] };
 	//new resource has to be something the creature is willling to use and closer than the current goal
-	return desire && (!m_goal || (m_goal->get_distance() > distance));
+	return desire && (!m_goal.active || (m_goal.get_distance() > distance));
 }
 
 
@@ -103,21 +97,18 @@ void Creature::update_goal(Ecology flag, const Observation& potential_goal) {
 	switch (relationship) {
 	case MetaEcology::water:
 		if (should_replace_goal(Body::Need::water, potential_goal.distance)) {
-			delete m_goal;
-			m_goal = new Goal{ potential_goal,relationship };
+			set_goal(potential_goal.object, relationship);
 		}
 		break;
 
 	case MetaEcology::food:
 		if (should_replace_goal(Body::Need::calories, potential_goal.distance)) {
-			delete m_goal;
-			m_goal = new Goal{ potential_goal, relationship };
+			set_goal(potential_goal.object, relationship);
 		}
 		break;
 	case MetaEcology::mate:
-		if (is_available() && potential_goal.distance < m_goal->get_distance()) {
-			delete m_goal;
-			m_goal = new Goal{ potential_goal, relationship };
+		if (is_available() && (!m_goal.active || potential_goal.distance < m_goal.get_distance()) ) {
+			set_goal(potential_goal.object, relationship);
 		}
 		break;
 	}
@@ -126,10 +117,9 @@ void Creature::update_goal(Ecology flag, const Observation& potential_goal) {
 
 void Creature::move(const Surroundings& surroundings) {
 	ForceManager::View view{ make_view(surroundings)};
-	
 	//figure out desired acceleration
 	if (!surroundings.empty()) {
-		constexpr int steps{ 4 };
+		constexpr int steps{ 10 };
 		constexpr double fraction{ 1.0 / steps };
 		//take some individual steps using the view given.
 		for (int i{}; i < steps; ++i) {
@@ -137,6 +127,7 @@ void Creature::move(const Surroundings& surroundings) {
 			m_acceleration = m_brain.response(status, view);
 			m_body.exert(m_acceleration, fraction);
 			manage_view(view);
+			
 		}
 
 		//at this point we could use this to determine what actions might be available
@@ -152,7 +143,7 @@ void Creature::move(const Surroundings& surroundings) {
 	//note make_view will leave m_goal as a nullpointer if none of the objects
 	//within eyesight are above the seeking threshold, so this only runs if it doesn't
 	//see anything interesting
-	if (!m_goal) {
+	if (!m_goal.active) {
 		acc_neutral();
 		m_body.exert(m_acceleration);
 	}
@@ -190,7 +181,7 @@ Creature* Creature::reproduce(Creature* other){
 	Creature& mate{ *other };
 
 	const double eyesight{ combine_scaled(m_EYESIGHT, mate.m_EYESIGHT) };
-	Genotype baby_genes{ m_body.reproduce(mate.m_body), eyesight, m_brain.reproduce(mate.m_brain) };
+	Genotype baby_genes{ m_brain.reproduce(mate.m_brain), m_body.reproduce(mate.m_body), eyesight };
 	return new Creature{ get_position(), baby_genes };
 }
 
@@ -208,7 +199,7 @@ void Creature::print() const {
 	std::cout << "Eyesight:\t"	<< m_EYESIGHT << '\n';
 	std::cout << "Position:\t"	<< string_position(get_position()) << '\n';
 	std::cout << "Veclocity:\t" << string_position(get_velocity()) << '\n';
-	std::cout << "Goal:\t\t"	<< (m_goal ? string_position(m_goal->get_position()) : "Null") << '\n';
+	std::cout << "Goal:\t\t"	<< (m_goal.active ? string_position(m_goal.get_position()) : "Null") << '\n';
 	std::cout << "Energy:\t\t"	<< m_body.print_reserve(Body::Need::calories) << '\n';
 	std::cout << "Water:\t\t"	<< m_body.print_reserve(Body::Need::water) << '\n';
 }
@@ -218,21 +209,21 @@ void Creature::print() const {
 
 
 bool Creature::goal_in_reach() {
-	if (!m_goal) { return false; }
+	if (!m_goal.active) { return false; }
 
 	//note this needs to be checked first so that way the creature releases
 	//unavailable goals (especially important so that it doesn't pursue a dead mate)
-	if (!(m_goal->is_available())) {
+	if (!(m_goal.is_available())) {
 		//if the goal is no longer available drop it as a goal
-		m_goal = nullptr;
+		m_goal.active = false;
 		return false;
 	}
 	//creature needs to slow down to mate, eat, drink, ect
-	if (m_body.get_speed() > 1.0) {
+	if (m_body.get_speed() > 5.0) {
 		return false; 
 	}
 
-	return (m_goal->get_distance()) < s_REACH;
+	return (m_goal.get_distance()) < s_REACH;
 }
 
 constexpr std::string_view getStateName(Creature::State state) {
@@ -257,6 +248,18 @@ int Creature::time_till_dead() const {
 	return m_body.time_till_dead();
 }
 
+std::string Creature::Genotype::header() const {
+	return Body::Genotype::header() + brain_genes.header() + "eyesight";
+}
+
+
+std::string Creature::Genotype::as_string() const {
+	return body_genes.to_string() + brain_genes.as_string() + std::to_string(eyesight);
+}
+
+void Creature::Genotype::print_to_file(std::ofstream& file) const {
+	file << as_string();
+}
 void Creature::Genotype::test_validity() const {
 	constexpr std::string_view positivity_error{ "Variable should be strictly positive" };
 	using ErrorMessage = std::pair<Gene, std::string_view>;
@@ -266,4 +269,41 @@ void Creature::Genotype::test_validity() const {
 	if (eyesight <= 0.0) {
 		throw ErrorMessage{ Gene::eyesight, positivity_error };
 	}
+}
+
+Creature::Genotype operator+(const Creature::Genotype& genes1, const Creature::Genotype& genes2) {
+	return Creature::Genotype{
+		genes1.brain_genes + genes2.brain_genes,
+		genes1.body_genes + genes2.body_genes,
+		genes1.eyesight + genes2.eyesight
+		
+	};
+}
+Creature::Genotype operator/(const Creature::Genotype& genes, const double denominator) {
+	return Creature::Genotype{
+		genes.brain_genes / denominator,
+		genes.body_genes / denominator,
+		genes.eyesight / denominator
+		
+	};
+}
+
+Creature::Genotype Creature::get_genotype() const {
+	return Genotype{ m_brain.get_genotype(), m_body.get_genes(), m_EYESIGHT };
+}
+
+Creature::Genotype Creature::Genotype::zero(Species structure) {
+	return Genotype{ ForceManager::Genotype::zero(structure), Body::Genotype::zero(), 0.0 };
+}
+
+void Creature::Genotype::operator+=(const Creature::Genotype& genes) {
+	brain_genes += genes.brain_genes;
+	body_genes += genes.body_genes;
+	eyesight += genes.eyesight;
+}
+
+void Creature::Genotype::clear() {
+	brain_genes.clear();
+	body_genes.clear();
+	eyesight = 0.0;
 }

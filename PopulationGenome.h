@@ -8,6 +8,11 @@
 #include <fstream>
 #include <string>
 
+/*
+* Tracks the average genotype of the population
+* Separate from genome so that non numerical genes can be tallied in other ways
+* i.e. a gene that is bool will need to be converted to an int
+*/
 class PopulationGenome
 {
 private:
@@ -25,7 +30,7 @@ public:
 	//gets the average genotype seen
 	Creature::Genotype average_genotype() const {
 		if (m_population_size == 0) {
-			return m_gene_total;
+			return m_gene_total / 1.0; //this is to ensure a copy is made and the result is not destructed
 		}
 		else {
 			return m_gene_total / m_population_size;
@@ -39,6 +44,7 @@ public:
  		m_population_size = 0;
 	}
 
+	//produces the header for recording the genome
 	std::string header() const;
 
 	//add in new genes,populatrion

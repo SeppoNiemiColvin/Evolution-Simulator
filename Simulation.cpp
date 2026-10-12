@@ -4,7 +4,7 @@
 #include <iostream>
 #include <functional>
 #include "ReproHelpers.h"
-#include "PopulationGenome.h"
+
 
 Simulation::Simulation(double left_bound, double right_bound, double lower_bound, double upper_bound,
 	const Creature::Genotype& genes, int population_size,
@@ -359,40 +359,45 @@ double Simulation::total_hydration() const {
 	return total_reserves(Body::Need::water);
 }
 
-void Simulation::run_and_record(const std::string& file_name, int bound) {
+void Simulation::record_genome(PopulationGenome& genome, std::ofstream& output_file) {
+	genome.clear();
+	for (auto animal : m_femalePopulation) {
+		genome += animal;
+	}
+	for (auto animal : m_malePopulation) {
+		genome += animal;
+	}
+	output_file << genome;
+}
+void Simulation::run_and_record(const std::string& file_name, int bound, int sample_frequency) {
 	std::ofstream output_file{ file_name  +".csv"};
 	if (!output_file) {
 		std::cerr << "Unable to open output file\n";
 		return;
 	}
 
+	const int print_frequency{ sample_frequency * 10 };
 	//header for the csv
 	PopulationGenome pop{ Species::gooblet };
-	output_file << pop.header() << ",Biomass" << '\n';
+	output_file << pop.header() <<  '\n';
 
 	//run the simulationa nd record results. print occasionally to keep updated
 	for (int time{}; time < bound; ++time) {
-		pop.clear();
-		for (auto animal : m_femalePopulation) {
-			pop += animal;
-		}
-		for (auto animal : m_malePopulation) {
-			pop += animal;
-		}
-		const double biomass{ total_biomass() };
-		output_file << pop << ',' << biomass <<'\n';
-
-		if (pop.get_population_size() == 0) {
+		//if population is empty break out
+		if (m_femalePopulation.size() == 0 and m_malePopulation.size() == 0) {
 			break;
+		}
+		if (time % sample_frequency == 0) {
+			record_genome(pop, output_file);
+			output_file << '\n';
 		}
 
 		update();
 
-		if (time % 100 == 0) {
+		if (time % print_frequency == 0) {
 
 			std::cout << "Time:\t" << time << '\n';
 			std::cout << "Population:\t" << pop.get_population_size() << '\n';
-			std::cout << "Biomass: \t" << biomass << '\n';
 			Creature::Genotype average{ pop.average_genotype() };
 			std::cout << "Avg. Speed:\t" << average.body_genes.max_speed << '\n';
 			std::cout << "Avg. Acc:\t" << average.body_genes.max_acceleration << '\n';

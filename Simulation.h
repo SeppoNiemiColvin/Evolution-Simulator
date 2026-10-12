@@ -9,6 +9,7 @@
 #include "WaterSource.h"
 #include<Eigen/Dense>
 #include <fstream>
+#include "PopulationGenome.h"
 
 using Eigen::Vector2d;
 
@@ -85,11 +86,15 @@ public:
 	double total_hydration() const;
 
 	//runs the simulation forward for bound intervals and records the average population properties over that time
-	void run_and_record(const std::string& file_name, int bound);
-
+	void run_and_record(const std::string& file_name, int bound, int sample_frequency);
+	//records the genome to the file (uses the PopulationGenome as a starting point/structure, explore dropping it at some point)
+	//note you still need to end the line (or add more data points)
+	void record_genome(PopulationGenome& genome, std::ofstream& output_file);
 	//records the position of all creatures
 	void record_population_positions(std::ofstream& output_file, int time) const;
+	//record the location of all the food items
 	void record_food(std::ofstream& output_file) const;
+	//record the location of all ponds
 	void record_water(std::ofstream& output_file) const;
 };
 

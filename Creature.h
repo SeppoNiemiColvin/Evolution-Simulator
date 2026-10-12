@@ -92,7 +92,7 @@ private:
 	// providing the fraction of the reserve cap that must be met for matting can happen
 	//they are static to provide a species wide constraint if the caps evolve.
 	static inline NeedList s_MATING_THRESHOLDS{ 0.6, 0.6 };
-	static inline NeedList s_SEEKING_THRESHOLDS{ 0.7, 0.7 };
+	static inline NeedList s_SEEKING_THRESHOLDS{ 0.8, 0.8 };
 
 	const double m_EYESIGHT{};
 	//movement/action property. Not currently evolvable

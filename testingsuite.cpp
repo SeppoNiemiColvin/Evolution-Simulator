@@ -133,7 +133,7 @@ void small_pop(const std::string& file_name, int bound) {
 }
 
 //note that sim1 was map_size 2e3 and food_diameter 30.0
-void test_density(double map_size, double food_diameter, const std::string& file_path) {
+void test_density(double map_size, double food_diameter, const std::string& file_path, int sample_frequency) {
     const double starting_speed{ 100.0 };
     const double water_area{ map_size * map_size / 20 };
     const int pond_number{ static_cast<int>(water_area / (5 * starting_speed * starting_speed) )};
@@ -149,7 +149,7 @@ void test_density(double map_size, double food_diameter, const std::string& file
     Simulation simulation{ -map_size, map_size, -map_size, map_size,
         genes, 100, food_number, water_area, pond_number };
 
-    simulation.run_and_record(file_path, 15000);
+    simulation.run_and_record(file_path, 15000, sample_frequency);
 }
 
 bool test_regions() {

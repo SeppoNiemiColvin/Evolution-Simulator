@@ -37,7 +37,7 @@ void small_pop(const std::string& file_name, int bound);
 * population statistics 
 * to file_path at each tick
 */
-void test_density(double map_size, double food_diameter, const std::string& file_path);
+void test_density(double map_size, double food_diameter, const std::string& file_path, int sample_frequency = 10);
 
 //makes sure region intersection mechanics are working properly
 bool test_regions();

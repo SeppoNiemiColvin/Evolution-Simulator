@@ -34,7 +34,7 @@ private:
 	double m_block_size{ 130.0 };
 
 	CoordPrehash prehash(const Vector2d& position) const {
-		return hash::prehash(position, m_block_size);
+		return hash2D::prehash(position, m_block_size);
 	}
 
 	std::unordered_set<CoordPrehash> relevant_coords(const Vector2d& position, double eyesight) const {

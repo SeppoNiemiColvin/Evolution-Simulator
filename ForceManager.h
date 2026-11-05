@@ -21,12 +21,12 @@ class ForceManager
 public:
 	using Observation = MovementAnalyzer::Observation;
 	using View = std::vector<std::vector<Observation>>;
-	using Surroundings = std::unordered_map < Ecology, std::vector<SurvivalResource*>>;
 	using Flags = std::vector<Ecology>;
 	using MetaGenotype = MovementAnalyzer::MetaGenotype;
 	using StructureGenes = std::unordered_map<Ecology, std::vector<MetaGenotype*>>;
 	
 	struct Genotype {
+		//this is an unorderd_map to provide more flexiblity while constructing
 		std::unordered_map<Ecology, MetaEcology> relationships{};
 		StructureGenes genes{};
 

@@ -39,7 +39,7 @@ private:
 	//converts the vector into a more reasonable thing to hash
 	// which groups positions into block size chunks
 	CoordPrehash prehash(const Vector2d& position) const {
-		return hash::prehash(position, m_block_size);
+		return hash2D::prehash(position, m_block_size);
 	}
 
 	Report check_coords(const Vector2d& position, double eyesight,const CoordPrehash coord_to_check){

@@ -22,7 +22,7 @@ std::vector<CoordPrehash> WaterSource::prehash(double block_size) const {
 	while (x_coord <= x_coord_end && y_coord <= y_coord_end) {
 		//get these coordinates
 		
-		answer.push_back(hash::prehash(x_coord, y_coord, block_size));
+		answer.push_back(hash2D::prehash(x_coord, y_coord, block_size));
 
 		//incriment point
 		y_coord += block_size;
@@ -32,30 +32,30 @@ std::vector<CoordPrehash> WaterSource::prehash(double block_size) const {
 		}
 	}
 
-	const bool x_same_block{hash::same_block(x_coord - block_size, x_coord_end, block_size)};
+	const bool x_same_block{hash2D::same_block(x_coord - block_size, x_coord_end, block_size)};
 
 
 	if (!x_same_block) {
 		y_coord = y_coord_base;
 		while (y_coord <= y_coord_end) {
-			answer.push_back(hash::prehash(x_coord_end, y_coord, block_size));
+			answer.push_back(hash2D::prehash(x_coord_end, y_coord, block_size));
 			y_coord += block_size;
 		}
 	}
 
 	y_coord = y_coord_base + block_size * static_cast<CoordPrehash>(m_pond.get_height() / block_size);
 
-	const bool y_same_block{ hash::same_block(y_coord, y_coord_end, block_size) };
+	const bool y_same_block{ hash2D::same_block(y_coord, y_coord_end, block_size) };
 	if (!y_same_block){
 		x_coord = m_pond.get_left();
 		while (x_coord <= x_coord_end) {
-			answer.push_back(hash::prehash(x_coord, y_coord_end, block_size));
+			answer.push_back(hash2D::prehash(x_coord, y_coord_end, block_size));
 			x_coord += block_size;
 		}
 	}
 
 	if (!x_same_block && !y_same_block) {
-		answer.push_back(hash::prehash(x_coord_end, y_coord_end, block_size));
+		answer.push_back(hash2D::prehash(x_coord_end, y_coord_end, block_size));
 	}
 	return answer;
 }

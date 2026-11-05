@@ -156,7 +156,7 @@ bool Creature::above_threshold(Body::Need need) {
 
 void Creature::update() {
 	//if we are dead, we stay dead
-	if (m_state == dead) {
+	if (m_body.is_dead()) {
 		return;
 	}
 	m_acceleration = Vector2d{};
@@ -167,11 +167,6 @@ void Creature::update() {
 	m_time_since_mated += 1;
 	//check if state needs to switch and if so adjust the goal
 	// state will become dead if any reserve is depleted
-	
-	if (m_body.is_dead()) {
-		m_state = dead;
-		return;
-	}
 
 }
 
@@ -194,7 +189,6 @@ std::string string_position(const Vector2d& position) {
 }
 
 void Creature::print() const {
-	std::cout << "State:\t\t"	<< m_state << '\n';
 	std::cout << "Speed:\t\t"	<< get_max_speed() << '\n';
 	std::cout << "Eyesight:\t"	<< m_EYESIGHT << '\n';
 	std::cout << "Position:\t"	<< string_position(get_position()) << '\n';
@@ -226,19 +220,6 @@ bool Creature::goal_in_reach() {
 	return (m_goal.get_distance()) < s_REACH;
 }
 
-constexpr std::string_view getStateName(Creature::State state) {
-	switch (state) {
-	case Creature::State::thirsty:	return "Thirsty";
-	case Creature::State::hungry:	return "Hungry";
-	case Creature::State::horny:	return "Horny";
-	case Creature::State::dead:		return "Dead";
-	default:						return "Other";
-	}
-}
-
-std::ostream& operator<<(std::ostream& out, Creature::State state) {
-	return out << getStateName(state);
-}
 
 int Creature::time_till_unavailable() const {
 	return m_body.time_till_unavailable(s_MATING_THRESHOLDS);

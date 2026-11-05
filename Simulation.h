@@ -28,6 +28,7 @@ private:
 
 	ResourceSet<Creature> m_femalePopulation{};
 	ResourceSet<Creature> m_malePopulation{};
+	PopulationGenome m_genome;
 
 	//gives a sentralized place from which to generate randomness
 	std::mt19937_64 m_random;
@@ -87,9 +88,12 @@ public:
 
 	//runs the simulation forward for bound intervals and records the average population properties over that time
 	void run_and_record(const std::string& file_name, int bound, int sample_frequency);
-	//records the genome to the file (uses the PopulationGenome as a starting point/structure, explore dropping it at some point)
-	//note you still need to end the line (or add more data points)
-	void record_genome(PopulationGenome& genome, std::ofstream& output_file);
+	//records the genome to a PopulationGenome object
+	void fill_population_genome();
+	//gets the header of the genome (likely to be printed to a file)
+	std::string get_genome_header() { return m_genome.header(); }
+	//makes sure the population genome is up to date and returns it
+	PopulationGenome get_genome();
 	//records the position of all creatures
 	void record_population_positions(std::ofstream& output_file, int time) const;
 	//record the location of all the food items

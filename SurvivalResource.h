@@ -43,7 +43,7 @@ public:
 
 	//hashes out where this resource is for better 
 	virtual std::vector<CoordPrehash> prehash(double block_size) const {
-		return std::vector<CoordPrehash>{ hash::prehash(get_position(), block_size)};
+		return std::vector<CoordPrehash>{ hash2D::prehash(get_position(), block_size)};
 	}
 };
 

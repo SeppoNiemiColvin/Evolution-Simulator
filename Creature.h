@@ -30,18 +30,6 @@ public:
 	//even try to reproduce
 
 
-	//current state of the gooblet.
-	//note the first states correspond to being low on the corresponding needs
-	//
-	enum State
-	{
-		thirsty,
-		hungry,
-		horny,
-		dead,
-		num_states
-	};
-
 	//enum where I can put variables from the genotype that can go wrong
 	//to make from easier debugging
 	enum class Gene {
@@ -63,8 +51,8 @@ public:
 		//prints this specific genotype
 		void print_to_file(std::ofstream& file) const;
 		std::string as_string() const;
-		
 
+		//genotype arithmetic
 		void operator+=(const Genotype& genes);
 		friend Genotype operator+(const Genotype& genes1, const Genotype& genes2);
 		friend Genotype operator/(const Genotype& genes, const double denominator);
@@ -106,9 +94,7 @@ private:
 	//the goal is a pointer toward the survival resource the gooblet is currently after
 	//helps prevent us from having to rellook this up constantly.
 	Goal m_goal{};
-	State m_state{ State::hungry };
 	ForceManager m_brain;
-
 
 	//These were put in to help debug population crashes to help see what the issue was
 	//may eventually inforporate death from old age
@@ -155,7 +141,7 @@ public:
 	void eat(double nutrition) { m_body.eat(nutrition); }
 
 	//getters describing the creature
-	bool is_dead() const { return m_state == State::dead; }
+	bool is_dead() const { return m_body.is_dead(); }
 	virtual bool is_available() const {
 		for (int need{}; need < Body::num_needs; ++need) {
 			if (s_MATING_THRESHOLDS[need] > m_body.felt_need(static_cast<Body::Need>(need))) {
@@ -166,11 +152,11 @@ public:
 	}
 	Vector2d get_position() const { return m_body.get_position(); }
 	Vector2d get_velocity() const { return m_body.get_velocity(); }
+	double get_current_speed() const { return m_body.get_velocity().norm(); }
 	double get_max_speed() const { return m_body.get_max_speed(); }
 	double get_max_acceleration() const { return m_body.get_max_acceleration(); }
 	double get_max_energy() const { return m_body.get_max_energy(); }
 	double get_current_reserve(Body::Need need) const { return m_body.current_reserve(need); }
-	State get_state() const { return m_state; }
 	Species get_species() const { return m_SPECIES; }
 	double get_eyesight() const { return m_EYESIGHT; }
 	double get_reach() const { return s_REACH; }
@@ -197,9 +183,6 @@ public:
 	//this will also force the gooblets to not immediately mate again
 	virtual void use() {
 		goal_in_reach();
-		if(!above_threshold(Body::Need::calories)) {
-			m_state = hungry;
-		}
 		m_time_since_mated = 0;
 	}
 
@@ -212,8 +195,6 @@ public:
 	friend void Region::pull_inside(Creature* creature) const;
 	friend void Rectangle::push_out(Creature* creatue) const;
 };
-
-std::ostream& operator<<(std::ostream& out, Creature::State state);
 
 //genotype arithmetic
 Creature::Genotype operator+(const Creature::Genotype& genes1, const Creature::Genotype& genes2);

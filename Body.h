@@ -50,10 +50,15 @@ public:
 
 	//bundles the needed information to make a creature together for easier passing to construction
 	struct Genotype {
+		//largest amount that the creature could store for each need
 		NeedVector reserve_caps{ 200.0, 150.0 };
+		//fastest the creature can go
 		double max_speed{ 100.0 };
+		//largest acceleration the creture can apply
 		double max_acceleration{ max_speed / 2 };
+		//any needs we plan on ignoring
 		NeedSet ignored_needs{};
+		//amount of each need the creature starts with when born
 		NeedVector starting_amounts{ .7 * reserve_caps[water], 0.5 * reserve_caps[calories] };
 
 
@@ -88,7 +93,7 @@ private:
 //water is lower to reflect that we need to drink more frequently/can't last as long without water as food
 	const NeedVector m_RESERVE_CAPS{200.0, 200.0};
 
-	//controls how fast metabolism happens
+	//controls how fast baseline metabolism happens
 	const NeedVector m_METABOLIC_BASE{};
 	//a need being included here means it won't be affected at all
 	const NeedSet m_IGNORED_NEEDS{};
@@ -130,7 +135,7 @@ public:
 	double get_max_acceleration() const { return m_MAX_ACCELERATION; }
 	double get_max_energy() const { return m_RESERVE_CAPS[Need::calories]; }
 
-	//gets how long the creature can exist as (living/horny) without finding new resources
+	//estimates how long the creature can exist as (living/horny) without finding new resources
 	int time_till_unavailable(std::array<double, num_needs>& thresholds) const;
 	int time_till_dead() const;
 

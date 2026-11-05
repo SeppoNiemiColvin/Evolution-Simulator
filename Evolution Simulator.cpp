@@ -24,15 +24,25 @@ int main()
     assert(test_friction_analyzer() && "Frictoin Analyzer Failed");
 
     PopulationGenome pop{ Species::gooblet };
-    std::ofstream output_file{ "behavior exploration/behavior_test.csv" };
-    output_file << "map_area," << "iteration," << pop.header()  << '\n';
-    
-    for (int i{}; i < 8; ++i) {
-        for (int iteration{}; iteration < 7; ++iteration) {
-            const double area{ 1e6 + i*2e6 };
-            run_sim(area, iteration, pop, output_file);
-        }
-    }
+    Simulation sim{ 0.0, 1e4, 0.0, 1e4, Creature::Genotype{DefaultBrainGenes::gooblet()},
+        100, 50, 1e6, 2 };
+    sim.update();
+
+    Creature::Genotype genes{ DefaultBrainGenes::gooblet() };
+
+    std::ofstream basic_genes{ "behavior exploration/basic_genes.csv" };
+    pop += genes;
+    basic_genes << pop.header() << "\n";
+    basic_genes << pop;
+    //std::ofstream output_file{ "behavior exploration/behavior_test.csv" };
+    //output_file << "map_area," << "iteration," << pop.header()  << '\n';
+    //
+    //for (int i{}; i < 8; ++i) {
+    //    for (int iteration{}; iteration < 7; ++iteration) {
+    //        const double area{ 1e6 + i*2e6 };
+    //        run_sim(area, iteration, pop, output_file);
+    //    }
+    //}
 
 }
 
@@ -58,8 +68,7 @@ void run_sim(double area, int iteration, PopulationGenome& pop, std::ofstream& f
     std::cout << '\n';
     if (sim.population_size() != 0) {
         file << area << ',' << iteration << ',';
-        sim.record_genome(pop, file);
-        file << std::endl;
+        file << sim.get_genome() << std::endl;
     }
 
 }

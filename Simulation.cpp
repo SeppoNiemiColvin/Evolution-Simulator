@@ -10,7 +10,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	const Creature::Genotype& genes, int population_size,
 	std::vector<Vector2d>& foodLocations) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{genes.eyesight + 30.0}
+	m_foodManager{genes.eyesight + 30.0}, m_genome{genes}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -33,7 +33,7 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	const Creature::Genotype& genes, int population_size, int food_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ genes.eyesight + 30.0}
+	m_foodManager{ genes.eyesight + 30.0}, m_genome{genes}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -59,7 +59,8 @@ Simulation::Simulation(Rectangle map_base,
 	bool bothGenders) :
 	m_map_base{ map_base },
 	m_foodManager{ genes.eyesight + 30.0 },
-	m_waterManager{ water_sources, genes.eyesight + 30.0}
+	m_waterManager{ water_sources, genes.eyesight + 30.0},
+	m_genome{genes}
 {
 	//set up a bunch of aserts for class requirements
 	//these should probably be made into exceptions as well
@@ -78,7 +79,8 @@ Simulation::Simulation(double left_bound, double right_bound, double lower_bound
 	double water_area, int pond_number,
 	bool bothGenders) :
 	m_map_base{ left_bound, right_bound, lower_bound, upper_bound },
-	m_foodManager{ genes.eyesight + 30.0 }
+	m_foodManager{ genes.eyesight + 30.0 },
+	m_genome{genes}
 {
 	double starting_speed{ genes.body_genes.max_speed };
 	//set up a bunch of aserts for class requirements
@@ -359,16 +361,21 @@ double Simulation::total_hydration() const {
 	return total_reserves(Body::Need::water);
 }
 
-void Simulation::record_genome(PopulationGenome& genome, std::ofstream& output_file) {
-	genome.clear();
+void Simulation::fill_population_genome() {
+	m_genome.clear();
 	for (auto animal : m_femalePopulation) {
-		genome += animal;
+		m_genome += animal;
 	}
 	for (auto animal : m_malePopulation) {
-		genome += animal;
+		m_genome += animal;
 	}
-	output_file << genome;
 }
+
+PopulationGenome Simulation::get_genome() {
+	fill_population_genome();
+	return m_genome;
+}
+
 void Simulation::run_and_record(const std::string& file_name, int bound, int sample_frequency) {
 	std::ofstream output_file{ file_name  +".csv"};
 	if (!output_file) {
@@ -378,8 +385,7 @@ void Simulation::run_and_record(const std::string& file_name, int bound, int sam
 
 	const int print_frequency{ sample_frequency * 10 };
 	//header for the csv
-	PopulationGenome pop{ Species::gooblet };
-	output_file << pop.header() <<  '\n';
+	output_file << m_genome.header() <<  '\n';
 
 	//run the simulationa nd record results. print occasionally to keep updated
 	for (int time{}; time < bound; ++time) {
@@ -388,8 +394,8 @@ void Simulation::run_and_record(const std::string& file_name, int bound, int sam
 			break;
 		}
 		if (time % sample_frequency == 0) {
-			record_genome(pop, output_file);
-			output_file << '\n';
+			fill_population_genome();
+			output_file << m_genome <<'\n';
 		}
 
 		update();
@@ -397,8 +403,8 @@ void Simulation::run_and_record(const std::string& file_name, int bound, int sam
 		if (time % print_frequency == 0) {
 
 			std::cout << "Time:\t" << time << '\n';
-			std::cout << "Population:\t" << pop.get_population_size() << '\n';
-			Creature::Genotype average{ pop.average_genotype() };
+			std::cout << "Population:\t" << m_genome.get_population_size() << '\n';
+			Creature::Genotype average{ m_genome.average_genotype() };
 			std::cout << "Avg. Speed:\t" << average.body_genes.max_speed << '\n';
 			std::cout << "Avg. Acc:\t" << average.body_genes.max_acceleration << '\n';
 			std::cout << "Avg. Eyesight:\t" << average.eyesight << '\n';

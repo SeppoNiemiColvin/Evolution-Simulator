@@ -26,6 +26,11 @@ public:
 	PopulationGenome(Species type) : m_type{ type } {
 	}
 
+	PopulationGenome(const Creature::Genotype& genes) : m_gene_total{ genes / 1.0 },
+		m_population_size{1}
+	{
+	}
+
 	Species get_type() const { return m_type; }
 	//gets the average genotype seen
 	Creature::Genotype average_genotype() const {

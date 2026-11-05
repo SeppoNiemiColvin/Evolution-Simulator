@@ -22,7 +22,7 @@ Vector2d DesireAnalyzer::calculate_acceleration(const Observation& observation) 
 		return observation.displacement * m_consolidated_force * scale_match;
 	}
 	else {
-		const double force{ m_consolidated_force * ( pow(observation.distance / 5.0, m_EXPONENT) + 0.5) };
+		const double force{ m_consolidated_force * ( pow(observation.distance / 5.0, m_EXPONENT) + lift) };
 		return observation.displacement * force / observation.distance;
 	}
 

@@ -18,6 +18,8 @@ When initializing a new creature, I needed to make sure at least one of food or 
 
 However, I discovered that it was very important to have food be the initial controlling need because food was also the resource that would provide a population cap. With this set up creatures drinking water doesn't prevent another creature from drinking water, but a creature eating food can prevent another creature from surviving. By starting with calories at 100%, creatures could create calories by reproducing, and populations ballooned significantly, reaching up to 20,000 instead of the 6,000 from earlier runs.
 
+Note that simulations 1 and 2 correspond to the same map size and food density as with the initial report.
+
 ### Population with Thirst Mechanic
 
 While one would suspect that the addition of the thirst mechanic which creates new ways to creatures to die, we also started these simulations with a larger base population (since experiencing an early population crash does not provide much useful information), so we cannot make conclusive statements about how the addition of thirst affected population numbers. As seen in the graph below, the low food density simulation with a thirst mechanic initially lagged behind the low density simulation without a thirst mechanic, but even then the overall population ended up higher.
@@ -40,6 +42,8 @@ I discovered upon attempting to make the graphs that I had adjusted the initial 
 
 ### Eyesight with Thirst Mechanic
 
+Adding thirst created more pressure for eyesight in both high and low food density simulations but high density with thirst still lags behind low density without thirst. Still, for high food density simulations, without thirst it took a while for any trend to emerge in the average eyesight and even then the trend was slight, whereas the trend immediately arose with the thirst mechanic. This showed that the thirst mechanic did force creatures to move around and be on the look  out for resources even in an abundant environment.
 
+![](C:\Users\mhans\source\repos\Evolution Simulator\Initial Simulation Report\eyesight over time with thirst.png)
 
-### Future Work
+### 
